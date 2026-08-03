@@ -48,8 +48,8 @@ export default function OrgsPage() {
       {/* Empty */}
       {!isLoading && orgs.length === 0 && (
         <div className="flex flex-col items-center justify-center py-28 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-          <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mb-5">
-            <Building2 className="w-9 h-9 text-indigo-400" />
+          <div className="w-20 h-20 rounded-3xl bg-[#EFF6FF] flex items-center justify-center mb-5">
+            <Building2 className="w-9 h-9 text-[#60A5FA]" />
           </div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">No organizations yet</h3>
           <p className="text-gray-500 mb-6 text-center max-w-xs">Create your first organization to start managing feature flags across your projects.</p>
@@ -65,9 +65,9 @@ export default function OrgsPage() {
           <button
             key={org.id}
             onClick={() => select(org)}
-            className="group flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-50 transition-all text-left"
+            className="group flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-[#93C5FD] hover:shadow-md hover:shadow-[#EFF6FF] transition-all text-left"
           >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shrink-0 shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] flex items-center justify-center shrink-0 shadow-md shadow-[#BFDBFE] group-hover:scale-105 transition-transform">
               <span className="text-2xl font-bold text-white">{org.name.charAt(0).toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
@@ -77,7 +77,7 @@ export default function OrgsPage() {
                 <p className="text-sm text-gray-400 font-mono truncate">{org.slug}</p>
               </div>
             </div>
-            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-[#60A5FA] group-hover:translate-x-0.5 transition-all shrink-0" />
           </button>
         ))}
       </div>

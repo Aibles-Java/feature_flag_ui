@@ -52,7 +52,7 @@ export default function ProjectsPage() {
     setDeleteTarget(p)
   }
 
-  const colors = ['from-violet-500 to-purple-700', 'from-blue-500 to-indigo-700', 'from-emerald-500 to-teal-700', 'from-rose-500 to-pink-700', 'from-amber-500 to-orange-700']
+  const colors = ['from-violet-500 to-purple-700', 'from-blue-500 to-[#1D4ED8]', 'from-emerald-500 to-teal-700', 'from-rose-500 to-pink-700', 'from-amber-500 to-orange-700']
 
   return (
     <div>
@@ -74,8 +74,8 @@ export default function ProjectsPage() {
 
       {!isLoading && projects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-28 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-          <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mb-5">
-            <FolderKanban className="w-9 h-9 text-indigo-400" />
+          <div className="w-20 h-20 rounded-3xl bg-[#EFF6FF] flex items-center justify-center mb-5">
+            <FolderKanban className="w-9 h-9 text-[#60A5FA]" />
           </div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">No projects yet</h3>
           <p className="text-gray-500 mb-6 text-center max-w-xs">Create your first project to start adding environments and managing feature flags.</p>
@@ -87,7 +87,7 @@ export default function ProjectsPage() {
         {projects.map((p, i) => (
           <div
             key={p.id}
-            className="group relative flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-50 transition-all cursor-pointer"
+            className="group relative flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-[#93C5FD] hover:shadow-md hover:shadow-[#EFF6FF] transition-all cursor-pointer"
             onClick={() => select(p)}
           >
             <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform`}>
@@ -102,7 +102,7 @@ export default function ProjectsPage() {
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => openEdit(e, p)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -113,7 +113,7 @@ export default function ProjectsPage() {
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-[#60A5FA] group-hover:translate-x-0.5 transition-all shrink-0" />
           </div>
         ))}
       </div>

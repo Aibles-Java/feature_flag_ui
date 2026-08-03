@@ -32,7 +32,7 @@ const ENV_CONFIG: Record<EnvType, {
   prod:    { bar: 'bg-red-500',     iconBg: 'bg-red-50',     iconText: 'text-red-500',     badge: 'bg-red-50 text-red-700 border-red-100',      label: 'Production'  },
   staging: { bar: 'bg-amber-400',   iconBg: 'bg-amber-50',   iconText: 'text-amber-500',   badge: 'bg-amber-50 text-amber-700 border-amber-100',  label: 'Staging'     },
   dev:     { bar: 'bg-emerald-500', iconBg: 'bg-emerald-50', iconText: 'text-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-100', label: 'Development' },
-  custom:  { bar: 'bg-indigo-400',  iconBg: 'bg-indigo-50',  iconText: 'text-indigo-500',  badge: 'bg-indigo-50 text-indigo-700 border-indigo-100',  label: 'Custom'      },
+  custom:  { bar: 'bg-[#60A5FA]',   iconBg: 'bg-[#EFF6FF]',  iconText: 'text-[#2563EB]',  badge: 'bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]',  label: 'Custom'      },
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -223,7 +223,7 @@ export default function EnvironmentsPage() {
                     >
                       <button
                         onClick={(e) => openEdit(e, env)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
                         title="Edit environment"
                       >
                         <Pencil className="w-4 h-4" />
@@ -240,7 +240,7 @@ export default function EnvironmentsPage() {
 
                   {/* CTA */}
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] bg-[#EFF6FF] px-3 py-1.5 rounded-lg group-hover:bg-[#DBEAFE] transition-colors">
                       View Flags →
                     </span>
                   </div>

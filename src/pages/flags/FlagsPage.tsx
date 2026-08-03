@@ -200,7 +200,7 @@ export default function FlagsPage() {
             { label: 'Enabled',     value: enabledCount,                    color: 'text-[#16A34A]',   accent: 'border-l-[#10B981]',   icon: <ToggleRight className="w-5 h-5 text-[#10B981]" />,     bg: 'bg-[#ECFDF5]'  },
             { label: 'Archived',    value: archivedFlags.length,            color: 'text-[#64748B]',   accent: 'border-l-[#E2E8F0]',   icon: <Archive className="w-5 h-5 text-[#64748B]" />,         bg: 'bg-[#F8FAFC]'  },
           ].map((s) => (
-            <div key={s.label} className={cn('rounded-xl border border-gray-200 border-l-4 px-5 py-5 flex items-center gap-4 shadow-sm bg-white', s.accent)}>
+            <div key={s.label} className={cn('rounded-xl border border-[#E2E8F0] border-l-4 px-5 py-5 flex items-center gap-4 shadow-sm bg-white', s.accent)}>
               <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', s.bg)}>
                 {s.icon}
               </div>
