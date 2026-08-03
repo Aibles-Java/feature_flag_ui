@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Flag, ToggleRight, Zap, ShieldCheck } from 'lucide-react'
+import { ToggleRight, Zap, ShieldCheck } from 'lucide-react'
 
 const FEATURES = [
   { icon: <ToggleRight className="w-4 h-4" />, text: 'Instant feature toggles — no deploys needed' },
@@ -40,7 +40,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left — brand panel */}
       <div className="hidden lg:flex w-[46%] flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #4338ca 0%, #5b21b6 60%, #4c1d95 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' }}>
 
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 opacity-[0.06]"
@@ -69,10 +69,13 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="relative flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-            <Flag className="w-4.5 h-4.5 text-white" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+              <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <span className="text-white font-bold text-xl">FlagFlow</span>
+          <span className="text-white font-bold text-xl">Onward</span>
         </div>
 
         {/* Tagline */}
@@ -82,7 +85,7 @@ export default function LoginPage() {
           </h2>
           <ul className="space-y-3">
             {FEATURES.map((f, i) => (
-              <li key={i} className="flex items-center gap-3 text-indigo-200 text-sm">
+              <li key={i} className="flex items-center gap-3 text-white/80 text-sm">
                 <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                   {f.icon}
                 </span>
@@ -92,22 +95,25 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative text-indigo-300/50 text-xs">© 2025 FlagFlow · Built for modern teams</p>
+        <p className="relative text-white/30 text-xs">© 2026 Onward · Built for modern teams</p>
       </div>
 
       {/* Right — form */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-8">
+      <div className="flex-1 flex items-center justify-center bg-[#F8FAFC] p-8">
         <div className="w-full max-w-[380px]">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center">
-              <Flag className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#2563EB' }}>
+              <svg width="18" height="18" viewBox="0 0 64 64" fill="none">
+                <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
-            <span className="font-bold text-gray-900 text-lg">FlagFlow</span>
+            <span className="font-bold text-gray-900 text-lg">Onward</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome back</h1>
-          <p className="text-gray-500 text-sm mb-8">Sign in to your FlagFlow account.</p>
+          <h1 className="text-3xl font-bold text-[#0F172A] mb-1">Welcome back</h1>
+          <p className="text-[#64748B] text-sm mb-8">Sign in to your Onward account.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
@@ -143,13 +149,13 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full h-11 text-sm font-semibold mt-2 shadow-sm" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in to FlagFlow'}
+              {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </Button>
           </form>
 
           <p className="text-sm text-center text-gray-500 mt-6">
             Don't have an account?{' '}
-            <Link to="/register" className="text-indigo-600 font-semibold hover:underline">
+            <Link to="/register" className="text-[#2563EB] font-semibold hover:underline">
               Create one free
             </Link>
           </p>

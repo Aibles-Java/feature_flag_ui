@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Flag } from 'lucide-react'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -46,17 +45,20 @@ export default function RegisterPage() {
     <div className="min-h-screen flex">
       {/* Left — brand panel */}
       <div className="hidden lg:flex w-[46%] flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #4338ca 0%, #5b21b6 60%, #4c1d95 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' }}>
 
         <div className="absolute inset-0 opacity-[0.06]"
           style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
 
         {/* Logo */}
         <div className="relative flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-            <Flag className="w-4.5 h-4.5 text-white" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+              <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <span className="text-white font-bold text-xl">FlagFlow</span>
+          <span className="text-white font-bold text-xl">Onward</span>
         </div>
 
         {/* Content */}
@@ -64,8 +66,8 @@ export default function RegisterPage() {
           <h2 className="text-white text-4xl font-bold leading-tight mb-4">
             One platform.<br />Every release.
           </h2>
-          <p className="text-indigo-200 text-base leading-relaxed max-w-xs">
-            FlagFlow gives your team the confidence to ship fast and roll back instantly — without redeployments.
+          <p className="text-white/80 text-base leading-relaxed max-w-xs">
+            Onward gives your team the confidence to ship fast and roll back instantly — without redeployments.
           </p>
 
           {/* Testimonial style */}
@@ -77,28 +79,31 @@ export default function RegisterPage() {
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">T</div>
               <div>
                 <p className="text-white text-xs font-semibold">Team Lead, SaaS Startup</p>
-                <p className="text-indigo-300 text-[11px]">5000+ flags managed</p>
+                <p className="text-white/60 text-[11px]">5000+ flags managed</p>
               </div>
             </div>
           </div>
         </div>
 
-        <p className="relative text-indigo-300/50 text-xs">© 2025 FlagFlow · Built for modern teams</p>
+        <p className="relative text-white/30 text-xs">© 2026 Onward · Built for modern teams</p>
       </div>
 
       {/* Right — form */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-8">
+      <div className="flex-1 flex items-center justify-center bg-[#F8FAFC] p-8">
         <div className="w-full max-w-[380px]">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center">
-              <Flag className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#2563EB' }}>
+              <svg width="18" height="18" viewBox="0 0 64 64" fill="none">
+                <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
-            <span className="font-bold text-gray-900 text-lg">FlagFlow</span>
+            <span className="font-bold text-gray-900 text-lg">Onward</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Create your account</h1>
-          <p className="text-gray-500 text-sm mb-8">Get started for free — no credit card needed.</p>
+          <h1 className="text-3xl font-bold text-[#0F172A] mb-1">Create your account</h1>
+          <p className="text-[#64748B] text-sm mb-8">Get started for free — no credit card needed.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -143,13 +148,13 @@ export default function RegisterPage() {
             )}
 
             <Button type="submit" className="w-full h-11 text-sm font-semibold mt-2 shadow-sm" disabled={loading}>
-              {loading ? 'Creating account…' : 'Get started free'}
+              {loading ? 'Đang đăng ký…' : 'Đăng ký'}
             </Button>
           </form>
 
           <p className="text-sm text-center text-gray-500 mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
+            <Link to="/login" className="text-[#2563EB] font-semibold hover:underline">
               Sign in
             </Link>
           </p>
