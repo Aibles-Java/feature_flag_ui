@@ -52,19 +52,22 @@ export default function AppLayout() {
   const onFlagsPage = location.pathname.includes('/flags')
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f4f5f7]">
+    <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
 
       {/* ── DARK SIDEBAR ── */}
-      <aside className="w-64 shrink-0 flex flex-col" style={{ background: '#1a1523' }}>
+      <aside className="w-64 shrink-0 flex flex-col" style={{ background: '#0F172A' }}>
 
         {/* Logo */}
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-white/5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <Flag className="w-4 h-4 text-white" strokeWidth={2.5} />
+        <div className="h-16 flex items-center gap-3 px-5 border-b border-white/[0.06]">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#2563EB' }}>
+            <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+              <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
           <div>
-            <p className="font-bold text-white leading-none text-[15px]">FlagFlow</p>
-            <p className="text-[10px] text-white/30 leading-none mt-0.5 font-medium tracking-wide">FEATURE FLAGS</p>
+            <p className="font-bold text-white leading-none text-[15px]">Onward</p>
+            <p className="text-[10px] text-white/35 leading-none mt-0.5 font-semibold tracking-widest">FEATURE FLAGS</p>
           </div>
         </div>
 
@@ -76,7 +79,7 @@ export default function AppLayout() {
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {currentOrg ? (
                   <>
-                    <div className="w-5 h-5 rounded bg-indigo-500 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                    <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: '#2563EB' }}>
                       {currentOrg.name.charAt(0).toUpperCase()}
                     </div>
                     <span className="truncate text-white/90 font-medium">{currentOrg.name}</span>
@@ -91,7 +94,7 @@ export default function AppLayout() {
               {orgs.map((o) => (
                 <SelectItem key={o.id} value={o.id}>
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                    <div className="w-5 h-5 rounded bg-[#EFF6FF] flex items-center justify-center text-[10px] font-bold text-[#2563EB]">
                       {o.name.charAt(0).toUpperCase()}
                     </div>
                     {o.name}
@@ -123,13 +126,13 @@ export default function AppLayout() {
                   className={cn(
                     'w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg text-sm transition-all font-medium',
                     isActive
-                      ? 'bg-indigo-500/20 text-white border border-indigo-500/30'
+                      ? 'bg-[#2563EB]/[0.18] text-white border border-[#2563EB]/[0.35]'
                       : 'text-white/50 hover:bg-white/5 hover:text-white/80 border border-transparent'
                   )}
                 >
-                  <FolderKanban className={cn('w-4 h-4 shrink-0', isActive ? 'text-indigo-400' : 'text-white/30')} />
+                  <FolderKanban className={cn('w-4 h-4 shrink-0', isActive ? 'text-[#60A5FA]' : 'text-white/30')} />
                   <span className="truncate flex-1">{p.name}</span>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#60A5FA] shrink-0" />}
                 </button>
 
                 {showEnvs && (
@@ -163,7 +166,7 @@ export default function AppLayout() {
         {/* User footer */}
         <div className="border-t border-white/5 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white shrink-0">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: '#2563EB' }}>
               {avatarLetter}
             </div>
             <div className="flex-1 min-w-0">
@@ -185,7 +188,7 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Top breadcrumb bar */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-8 gap-2 shrink-0 shadow-sm">
+        <header className="h-14 bg-white border-b border-[#E2E8F0] flex items-center px-8 gap-2 shrink-0 shadow-sm">
           <button onClick={() => navigate('/orgs')} className="text-sm text-gray-400 hover:text-gray-700 transition-colors font-medium">
             {currentOrg?.name ?? 'Organizations'}
           </button>
@@ -204,7 +207,7 @@ export default function AppLayout() {
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
               <span className="text-sm font-semibold text-gray-800">{currentEnv.name}</span>
-              <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
+              <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2563EB] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-full">
                 <Flag className="w-3 h-3" />
                 Flags
               </span>
