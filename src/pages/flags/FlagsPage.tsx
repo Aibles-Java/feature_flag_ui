@@ -56,14 +56,14 @@ function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
       className={cn(
         'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all select-none',
         enabled
-          ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm shadow-emerald-200'
-          : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+          ? 'bg-[#10B981] text-white hover:bg-[#059669] shadow-sm shadow-[#10B981]/25'
+          : 'bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]',
         pending && 'opacity-60 cursor-not-allowed',
       )}
     >
       {pending
         ? <Loader2 className="w-3 h-3 animate-spin" />
-        : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-slate-400')} />}
+        : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-[#94A3B8]')} />}
       {enabled ? 'Enabled' : 'Disabled'}
     </button>
   )
@@ -196,9 +196,9 @@ export default function FlagsPage() {
       {activeFlags.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Total flags', value: activeFlags.length,              color: 'text-gray-900',    accent: 'border-l-slate-300',   icon: <Flag className="w-5 h-5 text-slate-400" />,    bg: 'bg-slate-50'   },
-            { label: 'Enabled',     value: enabledCount,                    color: 'text-emerald-600', accent: 'border-l-emerald-400', icon: <ToggleRight className="w-5 h-5 text-emerald-500" />, bg: 'bg-emerald-50' },
-            { label: 'Archived',    value: archivedFlags.length,               color: 'text-gray-400', accent: 'border-l-slate-200',  icon: <Archive className="w-5 h-5 text-slate-300" />, bg: 'bg-white'      },
+            { label: 'Total flags', value: activeFlags.length,              color: 'text-[#0F172A]',   accent: 'border-l-[#2563EB]',   icon: <Flag className="w-5 h-5 text-[#2563EB]" />,           bg: 'bg-[#EFF6FF]'  },
+            { label: 'Enabled',     value: enabledCount,                    color: 'text-[#16A34A]',   accent: 'border-l-[#10B981]',   icon: <ToggleRight className="w-5 h-5 text-[#10B981]" />,     bg: 'bg-[#ECFDF5]'  },
+            { label: 'Archived',    value: archivedFlags.length,            color: 'text-[#64748B]',   accent: 'border-l-[#E2E8F0]',   icon: <Archive className="w-5 h-5 text-[#64748B]" />,         bg: 'bg-[#F8FAFC]'  },
           ].map((s) => (
             <div key={s.label} className={cn('rounded-xl border border-gray-200 border-l-4 px-5 py-5 flex items-center gap-4 shadow-sm bg-white', s.accent)}>
               <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', s.bg)}>
@@ -214,10 +214,10 @@ export default function FlagsPage() {
       )}
 
       {/* ── Table ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
 
         {/* Toolbar */}
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+        <div className="px-5 py-4 border-b border-[#F1F5F9] flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <Input
@@ -252,8 +252,8 @@ export default function FlagsPage() {
         {/* Empty state */}
         {!isLoading && activeFlags.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 px-6">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
-              <Flag className="w-7 h-7 text-indigo-400" />
+            <div className="w-16 h-16 rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-4">
+              <Flag className="w-7 h-7 text-[#2563EB]" />
             </div>
             <p className="text-base font-semibold text-gray-800 mb-1">No feature flags yet</p>
             <p className="text-sm text-gray-400 mb-6 text-center max-w-xs">
@@ -271,7 +271,7 @@ export default function FlagsPage() {
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <Search className="w-7 h-7 text-gray-300 mb-3" />
             <p className="text-sm font-medium text-gray-700">No flags match "{search}"</p>
-            <button onClick={() => setSearch('')} className="text-xs text-indigo-600 mt-1 hover:underline">
+            <button onClick={() => setSearch('')} className="text-xs text-[#2563EB] mt-1 hover:underline">
               Clear search
             </button>
           </div>
@@ -281,7 +281,7 @@ export default function FlagsPage() {
         {!isLoading && filtered.length > 0 && (
           <>
             <div className={cn(
-              'grid items-center px-5 py-3 bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-400 uppercase tracking-wider',
+              'grid items-center px-5 py-3 bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-bold text-[#64748B] uppercase tracking-wider',
               envId ? colsWithEnv : colsNoEnv
             )}>
               <div>Name</div>
@@ -291,7 +291,7 @@ export default function FlagsPage() {
               {envId && <div className="text-right">Status</div>}
             </div>
 
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-[#F1F5F9]">
               {filtered.map((flag) => {
                 const tc = typeConfig[flag.valueType]
                 const isEnabled = enabledById[flag.id] ?? false
@@ -299,7 +299,7 @@ export default function FlagsPage() {
                   <div
                     key={flag.id}
                     className={cn(
-                      'grid items-center px-5 py-4 hover:bg-gray-50/80 transition-colors',
+                      'grid items-center px-5 py-4 hover:bg-[#F8FAFC] transition-colors',
                       envId ? colsWithEnv : colsNoEnv
                     )}
                   >
@@ -308,7 +308,7 @@ export default function FlagsPage() {
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           'w-2 h-2 rounded-full shrink-0 transition-colors',
-                          envId ? (isEnabled ? 'bg-emerald-400' : 'bg-gray-300') : 'bg-indigo-400'
+                          envId ? (isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]') : 'bg-[#2563EB]'
                         )} />
                         <p className="text-sm font-semibold text-gray-900 truncate">{flag.name}</p>
                       </div>
@@ -339,7 +339,7 @@ export default function FlagsPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEdit(flag)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-colors"
+                        className="p-1.5 rounded hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#2563EB] transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -368,15 +368,15 @@ export default function FlagsPage() {
       </div>
 
       {/* ── Archived ── */}
-      <div className="rounded-xl border border-dashed border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-dashed border-[#E2E8F0] bg-white overflow-hidden">
         <button
-          className="w-full flex items-center gap-2 px-5 py-3 text-sm font-medium text-gray-400 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center gap-2 px-5 py-3 text-sm font-medium text-[#64748B] hover:bg-[#F8FAFC] transition-colors"
           onClick={() => setShowArchived((v) => !v)}
         >
           {showArchived ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           Archived flags
           {archivedFlags.length > 0 && (
-            <span className="ml-1 text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+            <span className="ml-1 text-xs bg-[#F1F5F9] text-[#64748B] px-2 py-0.5 rounded-full">
               {archivedFlags.length}
             </span>
           )}
@@ -404,7 +404,7 @@ export default function FlagsPage() {
                     <button
                       onClick={() => unarchiveMutation.mutate(flag.id)}
                       disabled={unarchiveMutation.isPending}
-                      className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-medium px-2.5 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-50 transition-colors"
+                      className="flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-medium px-2.5 py-1.5 rounded-lg border border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors"
                     >
                       <ArchiveRestore className="w-3.5 h-3.5" />
                       Restore
