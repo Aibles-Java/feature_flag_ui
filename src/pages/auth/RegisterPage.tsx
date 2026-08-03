@@ -73,7 +73,7 @@ export default function RegisterPage() {
           {/* Testimonial style */}
           <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
             <p className="text-white/90 text-sm leading-relaxed">
-              "We went from weekly to daily releases after adopting feature flags. FlagFlow made it seamless."
+              "We went from weekly to daily releases after adopting feature flags. Onward made it seamless."
             </p>
             <div className="flex items-center gap-3 mt-4">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">T</div>
