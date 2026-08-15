@@ -20,7 +20,12 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       const res = await register(form)
-      setAuth(res.token, res.userId, res.email)
+      setAuth({
+        token: res.accessToken,
+        refreshToken: res.refreshToken,
+        userId: res.userId,
+        email: res.email,
+      })
       navigate('/orgs')
     } catch (err) {
       if (axios.isAxiosError(err)) {

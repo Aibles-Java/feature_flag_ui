@@ -1,4 +1,5 @@
 import api from './axios'
+import { toList, type PageParams, type PageResponse } from './types'
 
 export interface Environment {
   id: string
@@ -9,8 +10,10 @@ export interface Environment {
   createdAt: string
 }
 
-export const getEnvironments = (projectId: string) =>
-  api.get<Environment[]>('/environments', { params: { projectId } }).then((r) => r.data)
+export const getEnvironments = (projectId: string, params?: PageParams) =>
+  api
+    .get<PageResponse<Environment>>('/environments', { params: { projectId, ...params } })
+    .then((r) => toList(r.data))
 
 export const getEnvironment = (id: string) =>
   api.get<Environment>(`/environments/${id}`).then((r) => r.data)
