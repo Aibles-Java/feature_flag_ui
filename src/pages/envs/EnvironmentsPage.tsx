@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getEnvironments, createEnvironment, updateEnvironment, deleteEnvironment, rotateApiKey, type Environment } from '@/api/environments'
+import { getEnvironments, createEnvironment, updateEnvironment, deleteEnvironment, rotateApiKey, type Environment, type EnvironmentSecret } from '@/api/environments'
 import { useNavStore } from '@/stores/navStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Globe, Plus, RefreshCw, Copy, Check, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Globe, Plus, RefreshCw, Copy, Check, Pencil, Trash2, EyeOff, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Color system ──────────────────────────────────────────────────────────────
@@ -50,33 +50,56 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function ApiKeyRow({ env, onRotate, rotating }: { env: Environment; onRotate: () => void; rotating: boolean }) {
-  const [revealed, setRevealed] = useState(false)
-  const masked = `${env.apiKey.slice(0, 12)}...${env.apiKey.slice(-4)}`
-
+/**
+ * The key cannot be displayed here: the backend keeps only a SHA-256 hash, so the plaintext exists
+ * exactly once, in the response that mints it. This row therefore says so plainly and offers the
+ * only action that can produce a readable key again — rotating it.
+ */
+function ApiKeyRow({ onRotate, rotating }: { onRotate: () => void; rotating: boolean }) {
   return (
     <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/60 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">API Key</span>
-      <code className="text-xs text-slate-600 font-mono flex-1 truncate min-w-0">
-        {revealed ? env.apiKey : masked}
-      </code>
-      <button
-        onClick={() => setRevealed(v => !v)}
-        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-        title={revealed ? 'Hide key' : 'Reveal key'}
-      >
-        {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-      </button>
-      <CopyButton text={env.apiKey} />
+      <span className="flex items-center gap-1.5 text-xs text-slate-400 flex-1 min-w-0">
+        <EyeOff className="w-3.5 h-3.5 shrink-0" />
+        <span className="truncate">Stored hashed — shown only once, when created or rotated</span>
+      </span>
       <button
         onClick={onRotate}
         disabled={rotating}
-        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors shrink-0"
+        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors shrink-0 disabled:opacity-50"
+        title="Generate a new key and invalidate the current one"
       >
         <RefreshCw className={cn('w-3 h-3', rotating && 'animate-spin')} />
         Rotate
       </button>
     </div>
+  )
+}
+
+/** Shows a freshly minted key once, with the warning that it cannot be retrieved again. */
+function SecretDialog({ secret, onClose }: { secret: EnvironmentSecret | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!secret} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>API key for «{secret?.name}»</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-1">
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800">
+              Copy this now — it is stored hashed and <strong>cannot be shown again</strong>. If you
+              lose it, rotate the key to get a new one.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <code className="text-xs text-slate-700 font-mono flex-1 break-all">{secret?.apiKey}</code>
+            {secret && <CopyButton text={secret.apiKey} />}
+          </div>
+          <Button className="w-full" onClick={onClose}>Done</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -93,6 +116,8 @@ export default function EnvironmentsPage() {
   const [editTarget, setEditTarget] = useState<Environment | null>(null)
   const [editForm, setEditForm] = useState({ name: '', description: '' })
   const [deleteTarget, setDeleteTarget] = useState<Environment | null>(null)
+  // The plaintext key exists only in the create/rotate response; hold it just long enough to show it.
+  const [secret, setSecret] = useState<EnvironmentSecret | null>(null)
 
   const { data: envs = [], isLoading } = useQuery({
     queryKey: ['envs', projectId],
@@ -102,7 +127,12 @@ export default function EnvironmentsPage() {
 
   const create = useMutation({
     mutationFn: () => createEnvironment({ projectId: projectId!, ...form }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['envs', projectId] }); setOpen(false); setForm({ name: '', description: '' }) },
+    onSuccess: (created) => {
+      qc.invalidateQueries({ queryKey: ['envs', projectId] })
+      setOpen(false)
+      setForm({ name: '', description: '' })
+      setSecret(created)
+    },
   })
 
   const editMutation = useMutation({
@@ -117,7 +147,10 @@ export default function EnvironmentsPage() {
 
   const rotate = useMutation({
     mutationFn: (envId: string) => rotateApiKey(envId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['envs', projectId] }),
+    onSuccess: (rotated) => {
+      qc.invalidateQueries({ queryKey: ['envs', projectId] })
+      setSecret(rotated)
+    },
   })
 
   const select = (env: Environment) => {
@@ -248,7 +281,6 @@ export default function EnvironmentsPage() {
 
                 {/* API Key row */}
                 <ApiKeyRow
-                  env={env}
                   onRotate={() => rotate.mutate(env.id)}
                   rotating={rotate.isPending && rotate.variables === env.id}
                 />
@@ -257,6 +289,8 @@ export default function EnvironmentsPage() {
           })}
         </div>
       )}
+
+      <SecretDialog secret={secret} onClose={() => setSecret(null)} />
 
       {/* ── Create dialog ── */}
       <Dialog open={open} onOpenChange={setOpen}>
