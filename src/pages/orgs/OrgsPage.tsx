@@ -16,7 +16,7 @@ export default function OrgsPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', slug: '' })
 
-  const { data: orgs = [], isLoading } = useQuery({ queryKey: ['orgs'], queryFn: getOrgs })
+  const { data: orgs = [], isLoading } = useQuery({ queryKey: ['orgs'], queryFn: () => getOrgs() })
 
   const create = useMutation({
     mutationFn: () => createOrg(form),

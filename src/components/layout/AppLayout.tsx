@@ -7,24 +7,35 @@ import { getOrgs } from '@/api/orgs'
 import { getProjects } from '@/api/projects'
 import { getEnvironments } from '@/api/environments'
 import { cn } from '@/lib/utils'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Flag, FolderKanban, LogOut, ChevronRight, Layers, ChevronDown } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
+import { Flag, FolderKanban, LogOut, ChevronRight, Layers, ChevronDown, ScrollText } from 'lucide-react'
+import { logout as revokeSession } from '@/api/auth'
 
 export default function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { token, email, logout } = useAuthStore()
+  const { token, refreshToken, email, logout } = useAuthStore()
   const { currentOrg, currentProject, currentEnv, setCurrentOrg, setCurrentProject, setCurrentEnv } = useNavStore()
 
   useEffect(() => { if (!token) navigate('/login') }, [token, navigate])
 
-  const { data: orgs = [] } = useQuery({ queryKey: ['orgs'], queryFn: getOrgs, enabled: !!token })
+  const { data: orgs = [] } = useQuery({ queryKey: ['orgs'], queryFn: () => getOrgs(), enabled: !!token })
   const { data: projects = [] } = useQuery({ queryKey: ['projects', currentOrg?.id], queryFn: () => getProjects(currentOrg!.id), enabled: !!currentOrg })
   const { data: envs = [] } = useQuery({ queryKey: ['envs', currentProject?.id], queryFn: () => getEnvironments(currentProject!.id), enabled: !!currentProject })
 
-  const handleLogout = () => { logout(); navigate('/login') }
+  const handleLogout = async () => {
+    // Revoke the family server-side first; a token dropped only client-side stays valid for
+    // its full 14-day life and can still be redeemed by anyone who captured it.
+    // Best-effort: the endpoint is idempotent, and a network failure must not trap the user
+    // in a session they've asked to leave.
+    if (refreshToken) {
+      try { await revokeSession(refreshToken) } catch { /* sign out locally regardless */ }
+    }
+    logout()
+    navigate('/login')
+  }
 
-  const selectOrg = (id: string) => {
+  const selectOrg = (id: string | null) => {
     const org = orgs.find((o) => o.id === id) ?? null
     setCurrentOrg(org)
     if (org) navigate(`/orgs/${org.id}`)
@@ -109,6 +120,29 @@ export default function AppLayout() {
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {!currentOrg && (
             <p className="text-xs text-white/25 text-center mt-6 px-2">Select a workspace above to get started.</p>
+          )}
+
+          {currentOrg && (
+            <>
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em] px-3 pb-1.5 pt-1">Organization</p>
+              <button
+                onClick={() => navigate(`/orgs/${currentOrg.id}/audit-log`)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg text-sm transition-all font-medium mb-2',
+                  location.pathname.endsWith('/audit-log')
+                    ? 'bg-[#2563EB]/[0.18] text-white border border-[#2563EB]/[0.35]'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white/80 border border-transparent'
+                )}
+              >
+                <ScrollText
+                  className={cn(
+                    'w-4 h-4 shrink-0',
+                    location.pathname.endsWith('/audit-log') ? 'text-[#60A5FA]' : 'text-white/30'
+                  )}
+                />
+                <span className="truncate flex-1">Audit log</span>
+              </button>
+            </>
           )}
 
           {currentOrg && projects.length > 0 && (

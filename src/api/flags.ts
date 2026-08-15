@@ -1,4 +1,5 @@
 import api from './axios'
+import { toList, type PageParams, type PageResponse } from './types'
 
 export type FlagValueType = 'BOOLEAN' | 'STRING' | 'INTEGER' | 'JSON'
 
@@ -20,8 +21,10 @@ export interface FlagState {
   value?: string
 }
 
-export const getFlags = (projectId: string) =>
-  api.get<FeatureFlag[]>('/flags', { params: { projectId } }).then((r) => r.data)
+export const getFlags = (projectId: string, params?: PageParams) =>
+  api
+    .get<PageResponse<FeatureFlag>>('/flags', { params: { projectId, ...params } })
+    .then((r) => toList(r.data))
 
 export const getFlag = (id: string) => api.get<FeatureFlag>(`/flags/${id}`).then((r) => r.data)
 
@@ -40,8 +43,10 @@ export const deleteFlag = (id: string) => api.delete(`/flags/${id}`)
 
 export const unarchiveFlag = (id: string) => api.post(`/flags/${id}/unarchive`)
 
-export const getArchivedFlags = (projectId: string) =>
-  api.get<FeatureFlag[]>('/flags/archived', { params: { projectId } }).then((r) => r.data)
+export const getArchivedFlags = (projectId: string, params?: PageParams) =>
+  api
+    .get<PageResponse<FeatureFlag>>('/flags/archived', { params: { projectId, ...params } })
+    .then((r) => toList(r.data))
 
 export const getFlagState = (flagId: string, envId: string) =>
   api.get<FlagState>(`/flags/${flagId}/environments/${envId}`).then((r) => r.data)

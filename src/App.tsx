@@ -7,6 +7,7 @@ import OrgsPage from '@/pages/orgs/OrgsPage'
 import ProjectsPage from '@/pages/projects/ProjectsPage'
 import EnvironmentsPage from '@/pages/envs/EnvironmentsPage'
 import FlagsPage from '@/pages/flags/FlagsPage'
+import AuditLogPage from '@/pages/audit/AuditLogPage'
 
 const qc = new QueryClient()
 
@@ -20,6 +21,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/orgs" element={<OrgsPage />} />
             <Route path="/orgs/:orgId" element={<ProjectsPage />} />
+            <Route path="/orgs/:orgId/audit-log" element={<AuditLogPage />} />
             <Route path="/orgs/:orgId/projects/:projectId" element={<EnvironmentsPage />} />
             <Route path="/orgs/:orgId/projects/:projectId/envs/:envId/flags" element={<FlagsPage />} />
           </Route>

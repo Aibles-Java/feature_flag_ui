@@ -1,4 +1,5 @@
 import api from './axios'
+import { toList, type PageParams, type PageResponse } from './types'
 
 export interface Organization {
   id: string
@@ -15,7 +16,8 @@ export interface Member {
   role: 'OWNER' | 'ADMIN' | 'VIEWER'
 }
 
-export const getOrgs = () => api.get<Organization[]>('/organisations').then((r) => r.data)
+export const getOrgs = (params?: PageParams) =>
+  api.get<PageResponse<Organization>>('/organisations', { params }).then((r) => toList(r.data))
 
 export const getOrg = (id: string) =>
   api.get<Organization>(`/organisations/${id}`).then((r) => r.data)
@@ -28,8 +30,10 @@ export const updateOrg = (id: string, data: { name: string }) =>
 
 export const deleteOrg = (id: string) => api.delete(`/organisations/${id}`)
 
-export const getMembers = (orgId: string) =>
-  api.get<Member[]>(`/organisations/${orgId}/members`).then((r) => r.data)
+export const getMembers = (orgId: string, params?: PageParams) =>
+  api
+    .get<PageResponse<Member>>(`/organisations/${orgId}/members`, { params })
+    .then((r) => toList(r.data))
 
 export const inviteMember = (orgId: string, data: { userId: string; role: string }) =>
   api.post<Member>(`/organisations/${orgId}/members`, data).then((r) => r.data)

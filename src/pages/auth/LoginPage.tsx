@@ -27,7 +27,12 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const res = await login(email, password)
-      setAuth(res.token, res.userId, res.email)
+      setAuth({
+        token: res.accessToken,
+        refreshToken: res.refreshToken,
+        userId: res.userId,
+        email: res.email,
+      })
       navigate('/orgs')
     } catch {
       setError('Invalid email or password.')
