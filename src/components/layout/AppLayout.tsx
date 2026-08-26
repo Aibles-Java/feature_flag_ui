@@ -7,7 +7,7 @@ import { getOrgs } from '@/api/orgs'
 import { getProjects } from '@/api/projects'
 import { getEnvironments } from '@/api/environments'
 import { cn } from '@/lib/utils'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Flag, FolderKanban, LogOut, ChevronRight, Layers, ChevronDown } from 'lucide-react'
 
 export default function AppLayout() {
@@ -24,7 +24,7 @@ export default function AppLayout() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const selectOrg = (id: string) => {
+  const selectOrg = (id: string | null) => {
     const org = orgs.find((o) => o.id === id) ?? null
     setCurrentOrg(org)
     if (org) navigate(`/orgs/${org.id}`)

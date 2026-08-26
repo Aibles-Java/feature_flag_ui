@@ -1,0 +1,12 @@
+# Local smoke-testing of the production image.
+#   docker compose up --build
+#   open http://localhost:8080
+services:
+  web:
+    build: .
+    image: ghcr.io/aibles-java/feature_flag_ui:local
+    ports:
+      - "8080:80"
+    environment:
+      # Point at your backend; host.docker.internal reaches the host from the container.
+      VITE_API_URL: http://host.docker.internal:8081/api/v1
