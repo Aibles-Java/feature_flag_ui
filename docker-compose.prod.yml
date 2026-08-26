@@ -1,0 +1,23 @@
+# Production deployment of the Onward UI (static site served by nginx).
+# Driven by the `deploy` job in .github/workflows/workflow.yml on the self-hosted
+# runner. All values come from the deploy job's env (image tag + secrets/vars).
+services:
+  ui:
+    image: ${APP_IMAGE}
+    container_name: ff_ui
+    restart: unless-stopped
+    environment:
+      # Runtime backend URL — injected into window.__ENV__ at container start
+      # (see docker/entrypoint.sh). Supplied from the GHCR deploy job.
+      VITE_API_URL: ${VITE_API_URL}
+    ports:
+      # Host port is configurable; defaults to 8080. Set repo variable UI_PORT
+      # once the reverse proxy in front is decided.
+      - "${UI_PORT:-8080}:80"
+    healthcheck:
+      # busybox wget ships in nginx:alpine; hits the /healthz endpoint in default.conf
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

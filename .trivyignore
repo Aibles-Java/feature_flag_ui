@@ -1,0 +1,3 @@
+# Trivy ignore file — CVE IDs to suppress in the `publish` job's HIGH/CRITICAL scan.
+# List accepted / unfixable vulnerabilities, one CVE per line. Example:
+# CVE-2023-12345
