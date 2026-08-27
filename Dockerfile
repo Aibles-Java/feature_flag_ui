@@ -13,8 +13,11 @@ RUN npm run build
 # ── Stage 2: serve with nginx ───────────────────────────────────────────────
 FROM nginx:1.27-alpine AS runtime
 
-# gettext provides `envsubst`, used to inject runtime config
-RUN apk add --no-cache gettext
+# Patch the base image's OS packages to their latest fixed versions so the
+# publish job's Trivy HIGH/CRITICAL gate passes (nginx:alpine lags upstream
+# security fixes for openssl/libxml2/libpng/etc.). gettext provides `envsubst`,
+# used to inject runtime config.
+RUN apk upgrade --no-cache && apk add --no-cache gettext
 
 # Nginx site config (SPA fallback, gzip, health check, caching)
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
