@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { logout as revokeSession } from '@/api/auth'
 import { useNavStore } from '@/stores/navStore'
 import { useQuery } from '@tanstack/react-query'
 import { getOrgs } from '@/api/orgs'
@@ -13,7 +14,7 @@ import { Flag, FolderKanban, LogOut, ChevronRight, Layers, ChevronDown } from 'l
 export default function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { token, email, logout } = useAuthStore()
+  const { token, email, refreshToken, logout } = useAuthStore()
   const { currentOrg, currentProject, currentEnv, setCurrentOrg, setCurrentProject, setCurrentEnv } = useNavStore()
 
   useEffect(() => { if (!token) navigate('/login') }, [token, navigate])
@@ -22,7 +23,12 @@ export default function AppLayout() {
   const { data: projects = [] } = useQuery({ queryKey: ['projects', currentOrg?.id], queryFn: () => getProjects(currentOrg!.id), enabled: !!currentOrg })
   const { data: envs = [] } = useQuery({ queryKey: ['envs', currentProject?.id], queryFn: () => getEnvironments(currentProject!.id), enabled: !!currentProject })
 
-  const handleLogout = () => { logout(); navigate('/login') }
+  const handleLogout = async () => {
+    // Best-effort server-side revoke; log out locally regardless of the result.
+    try { if (refreshToken) await revokeSession(refreshToken) } catch { /* ignore */ }
+    logout()
+    navigate('/login')
+  }
 
   const selectOrg = (id: string | null) => {
     const org = orgs.find((o) => o.id === id) ?? null
