@@ -180,7 +180,7 @@ export default function AppLayout() {
               <p className="text-[10px] text-white/30 font-medium">Administrator</p>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={() => void handleLogout()}
               title="Sign out"
               className="p-1.5 rounded-md hover:bg-white/10 text-white/25 hover:text-white/70 transition-colors"
             >

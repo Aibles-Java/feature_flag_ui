@@ -33,10 +33,17 @@ function forceLogout() {
 // recursion, no stale Authorization header.
 let refreshing: Promise<string> | null = null
 
+interface RefreshResult {
+  accessToken: string
+  refreshToken: string
+}
+
 async function runRefresh(): Promise<string> {
   const refreshToken = useAuthStore.getState().refreshToken
   if (!refreshToken) throw new Error('No refresh token')
-  const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken })
+  const { data } = await axios.post<RefreshResult>(`${baseURL}/auth/refresh`, {
+    refreshToken,
+  })
   // Refresh rotates the refresh token — the old one is now dead, so persist BOTH.
   useAuthStore.getState().setTokens(data.accessToken, data.refreshToken)
   return data.accessToken
