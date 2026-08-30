@@ -59,28 +59,26 @@ api.interceptors.response.use(
 
     // Only try to recover a first-time 401 on a real request.
     if (status !== 401 || !original || original._retry) {
-      return Promise.reject(error)
+      throw error
     }
     // Nothing to refresh with → straight to login.
     if (!useAuthStore.getState().refreshToken) {
       forceLogout()
-      return Promise.reject(error)
+      throw error
     }
 
     original._retry = true
     try {
-      if (!refreshing) {
-        refreshing = runRefresh().finally(() => {
-          refreshing = null
-        })
-      }
+      refreshing ??= runRefresh().finally(() => {
+        refreshing = null
+      })
       const newToken = await refreshing
       original.headers.Authorization = `Bearer ${newToken}`
       return api(original)
     } catch (e) {
       // Refresh token expired/revoked — session is over.
       forceLogout()
-      return Promise.reject(e)
+      throw e
     }
   }
 )
