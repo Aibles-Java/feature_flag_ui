@@ -64,6 +64,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # full history for accurate new-code / blame detection
+      # Generate coverage in this job's workspace so the scanner can pick up
+      # coverage/lcov.info (sonar-project.properties points at it). The scan runs
+      # on a separate runner from `test`, so coverage must be produced here.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run coverage
       # `sonar.qualitygate.wait=true` makes this job fail if the Quality Gate
       # fails, so the `publish` gate below is meaningful. Project key / sources
       # come from sonar-project.properties.
