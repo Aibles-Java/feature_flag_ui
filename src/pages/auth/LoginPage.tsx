@@ -21,13 +21,13 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
       const res = await login(email, password)
-      setAuth(res.token, res.userId, res.email)
+      setAuth(res.accessToken, res.refreshToken, res.userId, res.email)
       navigate('/orgs')
     } catch {
       setError('Invalid email or password.')
