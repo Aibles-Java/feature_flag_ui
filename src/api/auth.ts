@@ -1,8 +1,11 @@
 import api from './axios'
 
+// Matches backend org.aibles.feature_flag.dto.response.AuthResponse
 export interface AuthResponse {
-  token: string
-  type: string
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
   userId: string
   email: string
 }
@@ -10,9 +13,10 @@ export interface AuthResponse {
 export const login = (email: string, password: string) =>
   api.post<AuthResponse>('/auth/login', { email, password }).then((r) => r.data)
 
+// Backend register returns 201 with no body — it does not auto-login.
 export const register = (data: {
   email: string
   password: string
   firstName?: string
   lastName?: string
-}) => api.post<AuthResponse>('/auth/register', data).then((r) => r.data)
+}) => api.post<void>('/auth/register', data).then(() => undefined)

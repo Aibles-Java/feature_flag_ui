@@ -2,14 +2,12 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { register } from '@/api/auth'
-import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const setAuth = useAuthStore((s) => s.setAuth)
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,9 +17,8 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await register(form)
-      setAuth(res.token, res.userId, res.email)
-      navigate('/orgs')
+      await register(form)
+      navigate('/login')
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (!err.response) {
