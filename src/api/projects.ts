@@ -1,4 +1,5 @@
 import api from './axios'
+import { pageItems, type Page } from './page'
 
 export interface Project {
   id: string
@@ -9,7 +10,9 @@ export interface Project {
 }
 
 export const getProjects = (organisationId: string) =>
-  api.get<Project[]>('/projects', { params: { organisationId } }).then((r) => r.data)
+  api
+    .get<Page<Project>>('/projects', { params: { organisationId } })
+    .then((r) => pageItems(r.data))
 
 export const getProject = (id: string) =>
   api.get<Project>(`/projects/${id}`).then((r) => r.data)

@@ -1,4 +1,5 @@
 import api from './axios'
+import { pageItems, type Page } from './page'
 
 export type FlagValueType = 'BOOLEAN' | 'STRING' | 'INTEGER' | 'JSON'
 
@@ -21,7 +22,7 @@ export interface FlagState {
 }
 
 export const getFlags = (projectId: string) =>
-  api.get<FeatureFlag[]>('/flags', { params: { projectId } }).then((r) => r.data)
+  api.get<Page<FeatureFlag>>('/flags', { params: { projectId } }).then((r) => pageItems(r.data))
 
 export const getFlag = (id: string) => api.get<FeatureFlag>(`/flags/${id}`).then((r) => r.data)
 
@@ -41,7 +42,9 @@ export const deleteFlag = (id: string) => api.delete(`/flags/${id}`)
 export const unarchiveFlag = (id: string) => api.post(`/flags/${id}/unarchive`)
 
 export const getArchivedFlags = (projectId: string) =>
-  api.get<FeatureFlag[]>('/flags/archived', { params: { projectId } }).then((r) => r.data)
+  api
+    .get<Page<FeatureFlag>>('/flags/archived', { params: { projectId } })
+    .then((r) => pageItems(r.data))
 
 export const getFlagState = (flagId: string, envId: string) =>
   api.get<FlagState>(`/flags/${flagId}/environments/${envId}`).then((r) => r.data)
