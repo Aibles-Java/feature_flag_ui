@@ -6,7 +6,6 @@ import {
   createEnvironment,
   updateEnvironment,
   deleteEnvironment,
-  rotateApiKey,
   type Environment,
   type EnvironmentSecret,
 } from '@/api/environments'
@@ -18,7 +17,9 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import ApiError from '@/components/ApiError'
-import { Globe, Plus, RefreshCw, Copy, Check, Pencil, Trash2, Clock, ShieldAlert, KeyRound } from 'lucide-react'
+import ApiKeysDialog from '@/components/ApiKeysDialog'
+import SecretDialog from '@/components/SecretDialog'
+import { Globe, Plus, Pencil, Trash2, Clock, KeyRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Color system ──────────────────────────────────────────────────────────────
@@ -77,53 +78,6 @@ function windowProblem(start: string, end: string): string | null {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false)
-  return (
-    <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-      title="Copy"
-    >
-      {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-    </button>
-  )
-}
-
-/**
- * Shows a freshly minted SDK key, once.
- *
- * The key is never in list data: the backend stores it hashed and returns the plaintext only
- * from create and rotate. So there is no "reveal" affordance to offer on a card — there is
- * nothing to reveal. Miss this dialog and the only way back is another rotation.
- */
-function SecretDialog({ secret, onClose }: { secret: EnvironmentSecret | null; onClose: () => void }) {
-  return (
-    <Dialog open={!!secret} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>API key for {secret?.name}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-1">
-          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
-            <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
-            <p className="leading-snug">
-              Copy this now. The backend stores it hashed, so it can never be shown again. If you
-              lose it, rotate the key to mint a new one.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <KeyRound className="w-4 h-4 text-slate-400 shrink-0" />
-            <code className="text-xs text-slate-700 font-mono flex-1 break-all">{secret?.apiKey}</code>
-            {secret && <CopyButton text={secret.apiKey} />}
-          </div>
-          <Button className="w-full" onClick={onClose}>Done</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 /** Type + change window in one strip — the two attributes the backend's ABAC rules read. */
 function ProtectionRow({ env }: { env: Environment }) {
@@ -298,7 +252,9 @@ export default function EnvironmentsPage() {
   const [editTarget, setEditTarget] = useState<Environment | null>(null)
   const [editForm, setEditForm] = useState(EMPTY_FORM)
   const [deleteTarget, setDeleteTarget] = useState<Environment | null>(null)
-  const [secret, setSecret] = useState<EnvironmentSecret | null>(null)
+  const [keysTarget, setKeysTarget] = useState<Environment | null>(null)
+  /** Set right after create, so the one-time key is shown without opening the panel. */
+  const [createdSecret, setCreatedSecret] = useState<EnvironmentSecret | null>(null)
 
   const { data: envs = [], isLoading } = useQuery({
     queryKey: ['envs', projectId],
@@ -323,7 +279,7 @@ export default function EnvironmentsPage() {
       invalidate()
       setOpen(false)
       setForm(EMPTY_FORM)
-      setSecret(created)
+      setCreatedSecret(created)
     },
   })
 
@@ -343,11 +299,6 @@ export default function EnvironmentsPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteEnvironment(deleteTarget!.id),
     onSuccess: () => { invalidate(); setDeleteTarget(null) },
-  })
-
-  const rotate = useMutation({
-    mutationFn: (envId: string) => rotateApiKey(envId),
-    onSuccess: (rotated) => { invalidate(); setSecret(rotated) },
   })
 
   const select = (env: Environment) => {
@@ -457,12 +408,11 @@ export default function EnvironmentsPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
-                        onClick={(e) => { e.stopPropagation(); rotate.mutate(env.id) }}
-                        disabled={rotate.isPending && rotate.variables === env.id}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                        title="Rotate API key"
+                        onClick={(e) => { e.stopPropagation(); setKeysTarget(env) }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+                        title="API keys"
                       >
-                        <RefreshCw className={cn('w-4 h-4', rotate.isPending && rotate.variables === env.id && 'animate-spin')} />
+                        <KeyRound className="w-4 h-4" />
                       </button>
                       <button
                         onClick={(e) => openEdit(e, env)}
@@ -495,9 +445,6 @@ export default function EnvironmentsPage() {
           })}
         </div>
       )}
-
-      {/* Rotation failures have no dialog of their own — surface them on the page. */}
-      <ApiError error={rotate.error} />
 
       {/* ── Create dialog ── */}
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) create.reset() }}>
@@ -611,7 +558,18 @@ export default function EnvironmentsPage() {
         </DialogContent>
       </Dialog>
 
-      <SecretDialog secret={secret} onClose={() => setSecret(null)} />
+      <SecretDialog
+        title={`API key for ${createdSecret?.name ?? ''}`}
+        apiKey={createdSecret?.apiKey ?? null}
+        onClose={() => setCreatedSecret(null)}
+      />
+
+      <ApiKeysDialog
+        environmentId={keysTarget?.id ?? null}
+        environmentName={keysTarget?.name ?? ''}
+        open={!!keysTarget}
+        onClose={() => setKeysTarget(null)}
+      />
     </div>
   )
 }
