@@ -72,13 +72,23 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      {/*
+        An empty list has two very different causes now that the backend narrows it to the
+        projects the caller can reach: the organisation genuinely has none, or it has some and
+        this person has been granted none of them. Telling a MEMBER to "create your first
+        project" when they cannot create one, and cannot see the five that exist, reads as the
+        app being broken.
+      */}
       {!isLoading && projects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-28 bg-white rounded-2xl border-2 border-dashed border-gray-200">
           <div className="w-20 h-20 rounded-3xl bg-[#EFF6FF] flex items-center justify-center mb-5">
             <FolderKanban className="w-9 h-9 text-[#60A5FA]" />
           </div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">No projects yet</h3>
-          <p className="text-gray-500 mb-6 text-center max-w-xs">Create your first project to start adding environments and managing feature flags.</p>
+          <p className="text-gray-500 mb-6 text-center max-w-sm">
+            Either this organisation has no projects, or you have not been granted access to any.
+            An organisation admin can grant you access to a project.
+          </p>
           <Button onClick={() => setOpen(true)} className="gap-2 h-10 px-6"><Plus className="w-4 h-4" /> Create project</Button>
         </div>
       )}
