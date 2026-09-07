@@ -1,4 +1,4 @@
-import { isAxiosError } from 'axios'
+import { isAxiosError, type AxiosError } from 'axios'
 
 /**
  * RFC 7807 body returned by the backend's `GlobalExceptionHandler` for every handled error.
@@ -16,10 +16,22 @@ interface ProblemDetail {
   errors?: Record<string, string>
 }
 
-const fieldErrors = (problem: ProblemDetail): string =>
-  Object.values(problem.errors ?? {})
+const fieldErrors = (problem: ProblemDetail | undefined): string =>
+  Object.values(problem?.errors ?? {})
     .filter(Boolean)
     .join('. ')
+
+/**
+ * The backend's explanation, in the order of usefulness: the field-level messages beat the
+ * generic `detail` they accompany, and both beat axios's own transport message.
+ *
+ * Written as a `||` chain rather than nested ifs so the precedence is readable in one line, and
+ * because the chain is what keeps this and its caller inside the cognitive-complexity budget.
+ */
+function axiosMessage(error: AxiosError): string {
+  const problem = error.response?.data as ProblemDetail | undefined
+  return fieldErrors(problem) || problem?.detail || problem?.title || error.message || ''
+}
 
 /**
  * Pulls the backend's own explanation out of a failed request.
@@ -35,14 +47,8 @@ const fieldErrors = (problem: ProblemDetail): string =>
  */
 export function problemMessage(error: unknown, fallback = 'Something went wrong'): string {
   if (isAxiosError(error)) {
-    const problem = error.response?.data as ProblemDetail | undefined
-    if (problem) {
-      const fields = fieldErrors(problem)
-      if (fields) return fields
-      if (problem.detail) return problem.detail
-      if (problem.title) return problem.title
-    }
-    if (error.message) return error.message
+    const fromResponse = axiosMessage(error)
+    if (fromResponse) return fromResponse
   }
   if (error instanceof Error && error.message) return error.message
   return fallback
