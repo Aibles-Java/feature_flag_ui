@@ -26,7 +26,7 @@ export default function AppLayout() {
 
   const handleLogout = async () => {
     // Best-effort server-side revoke; log out locally regardless of the result.
-    try { if (refreshToken) await revokeSession(refreshToken) } catch { /* ignore */ }
+    if (refreshToken) await revokeSession(refreshToken).catch(() => undefined)
     logout()
     navigate('/login')
   }
