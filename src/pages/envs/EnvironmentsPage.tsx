@@ -1,27 +1,36 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getEnvironments, createEnvironment, updateEnvironment, deleteEnvironment, rotateApiKey, type Environment } from '@/api/environments'
+import {
+  getEnvironments,
+  createEnvironment,
+  updateEnvironment,
+  deleteEnvironment,
+  rotateApiKey,
+  type Environment,
+  type EnvironmentSecret,
+} from '@/api/environments'
+import { ENV_TYPES, type EnvType } from '@/api/abac'
 import { useNavStore } from '@/stores/navStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Globe, Plus, RefreshCw, Copy, Check, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import ApiError from '@/components/ApiError'
+import { Globe, Plus, RefreshCw, Copy, Check, Pencil, Trash2, Clock, ShieldAlert, KeyRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Color system ──────────────────────────────────────────────────────────────
 
-type EnvType = 'prod' | 'staging' | 'dev' | 'custom'
-
-function getEnvType(name: string): EnvType {
-  const n = name.toLowerCase()
-  if (n.includes('prod')) return 'prod'
-  if (n.includes('stag')) return 'staging'
-  if (n.includes('dev')) return 'dev'
-  return 'custom'
-}
-
+/**
+ * Keyed off the backend's `EnvType`, not the environment's name.
+ *
+ * This used to guess from the name (a name containing "prod" meant production). The backend has
+ * carried a real `type` since the ABAC work, and it is the field the authorization rules read —
+ * so guessing could paint an environment green while the backend treated every write to it as
+ * production-elevated.
+ */
 const ENV_CONFIG: Record<EnvType, {
   bar: string
   iconBg: string
@@ -29,10 +38,42 @@ const ENV_CONFIG: Record<EnvType, {
   badge: string
   label: string
 }> = {
-  prod:    { bar: 'bg-red-500',     iconBg: 'bg-red-50',     iconText: 'text-red-500',     badge: 'bg-red-50 text-red-700 border-red-100',      label: 'Production'  },
-  staging: { bar: 'bg-amber-400',   iconBg: 'bg-amber-50',   iconText: 'text-amber-500',   badge: 'bg-amber-50 text-amber-700 border-amber-100',  label: 'Staging'     },
-  dev:     { bar: 'bg-emerald-500', iconBg: 'bg-emerald-50', iconText: 'text-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-100', label: 'Development' },
-  custom:  { bar: 'bg-[#60A5FA]',   iconBg: 'bg-[#EFF6FF]',  iconText: 'text-[#2563EB]',  badge: 'bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]',  label: 'Custom'      },
+  PRODUCTION:  { bar: 'bg-red-500',     iconBg: 'bg-red-50',     iconText: 'text-red-500',     badge: 'bg-red-50 text-red-700 border-red-100',             label: 'Production'  },
+  STAGING:     { bar: 'bg-amber-400',   iconBg: 'bg-amber-50',   iconText: 'text-amber-500',   badge: 'bg-amber-50 text-amber-700 border-amber-100',       label: 'Staging'     },
+  DEVELOPMENT: { bar: 'bg-emerald-500', iconBg: 'bg-emerald-50', iconText: 'text-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-100', label: 'Development' },
+}
+
+const FALLBACK_CONFIG = {
+  bar: 'bg-[#60A5FA]',
+  iconBg: 'bg-[#EFF6FF]',
+  iconText: 'text-[#2563EB]',
+  badge: 'bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]',
+  label: 'Unknown',
+}
+
+const configFor = (type: EnvType) => ENV_CONFIG[type] ?? FALLBACK_CONFIG
+
+const hh = (hour: number) => `${String(hour).padStart(2, '0')}:00`
+
+/** Empty string is the "no window" input state; the backend takes null for that. */
+const toHour = (value: string): number | null => {
+  if (value.trim() === '') return null
+  const n = Number(value)
+  return Number.isInteger(n) && n >= 0 && n <= 23 ? n : null
+}
+
+/**
+ * The backend rejects a half-specified window (`@AssertTrue changeWindowComplete`) and rejects
+ * an hour outside 0-23. Checking here keeps a typo from costing a round trip, and keeps the
+ * submit button honest about what will be accepted.
+ */
+function windowProblem(start: string, end: string): string | null {
+  const filled = [start, end].filter((v) => v.trim() !== '')
+  if (filled.length === 1) return 'Set both hours, or leave both empty.'
+  if (filled.length === 2 && (toHour(start) === null || toHour(end) === null)) {
+    return 'Hours must be whole numbers between 0 and 23.'
+  }
+  return null
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -50,37 +91,201 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function ApiKeyRow({ env, onRotate, rotating }: { env: Environment; onRotate: () => void; rotating: boolean }) {
-  const [revealed, setRevealed] = useState(false)
-  const masked = `${env.apiKey.slice(0, 12)}...${env.apiKey.slice(-4)}`
+/**
+ * Shows a freshly minted SDK key, once.
+ *
+ * The key is never in list data: the backend stores it hashed and returns the plaintext only
+ * from create and rotate. So there is no "reveal" affordance to offer on a card — there is
+ * nothing to reveal. Miss this dialog and the only way back is another rotation.
+ */
+function SecretDialog({ secret, onClose }: { secret: EnvironmentSecret | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!secret} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>API key for {secret?.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-1">
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
+            <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+            <p className="leading-snug">
+              Copy this now. The backend stores it hashed, so it can never be shown again. If you
+              lose it, rotate the key to mint a new one.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <KeyRound className="w-4 h-4 text-slate-400 shrink-0" />
+            <code className="text-xs text-slate-700 font-mono flex-1 break-all">{secret?.apiKey}</code>
+            {secret && <CopyButton text={secret.apiKey} />}
+          </div>
+          <Button className="w-full" onClick={onClose}>Done</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Type + change window in one strip — the two attributes the backend's ABAC rules read. */
+function ProtectionRow({ env }: { env: Environment }) {
+  const cfg = configFor(env.type)
+  const hasWindow = env.changeWindowStartHour !== null && env.changeWindowEndHour !== null
 
   return (
-    <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/60 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">API Key</span>
-      <code className="text-xs text-slate-600 font-mono flex-1 truncate min-w-0">
-        {revealed ? env.apiKey : masked}
-      </code>
-      <button
-        onClick={() => setRevealed(v => !v)}
-        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-        title={revealed ? 'Hide key' : 'Reveal key'}
-      >
-        {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-      </button>
-      <CopyButton text={env.apiKey} />
-      <button
-        onClick={onRotate}
-        disabled={rotating}
-        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors shrink-0"
-      >
-        <RefreshCw className={cn('w-3 h-3', rotating && 'animate-spin')} />
-        Rotate
-      </button>
+    <div className="border-t border-slate-100 px-4 py-2.5 bg-slate-50/60 flex items-center gap-3 flex-wrap">
+      <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border', cfg.badge)}>
+        {cfg.label}
+      </span>
+      {hasWindow ? (
+        <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+          <Clock className="w-3.5 h-3.5 text-slate-400" />
+          Changes allowed {hh(env.changeWindowStartHour!)}–{hh(env.changeWindowEndHour!)}{' '}
+          <span className="text-slate-400">({env.changeWindowTimezone ?? 'server time'})</span>
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+          <Clock className="w-3.5 h-3.5 text-slate-300" />
+          No change window
+        </span>
+      )}
     </div>
   )
 }
 
+/** Type + change window fields, shared by the create and edit dialogs. */
+function ProtectionFields({
+  type,
+  start,
+  end,
+  tz,
+  mode,
+  onChange,
+}: {
+  type: EnvType
+  start: string
+  end: string
+  tz: string
+  mode: 'create' | 'edit'
+  onChange: (patch: { type?: EnvType; start?: string; end?: string; tz?: string }) => void
+}) {
+  const problem = windowProblem(start, end)
+  return (
+    <>
+      <div className="space-y-1.5">
+        <Label>Type</Label>
+        <Select value={type} onValueChange={(v) => onChange({ type: v as EnvType })}>
+          {/* The list shows "Production"; without a formatter the trigger would show the raw
+              enum "PRODUCTION" back, so the closed and open states disagree. */}
+          <SelectTrigger>
+            <SelectValue>{(v) => configFor(v as EnvType).label}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {ENV_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>{configFor(t).label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {type === 'PRODUCTION' && (
+          <p className="text-xs text-amber-600 leading-snug">
+            Flag-state changes, archiving, key rotation and deletion here become OWNER-only.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>
+          Change window <span className="text-gray-400">(optional, hour 0–23)</span>
+        </Label>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            min={0}
+            max={23}
+            value={start}
+            onChange={(e) => onChange({ start: e.target.value })}
+            placeholder="From"
+          />
+          <span className="text-slate-300">–</span>
+          <Input
+            type="number"
+            min={0}
+            max={23}
+            value={end}
+            onChange={(e) => onChange({ end: e.target.value })}
+            placeholder="To"
+          />
+        </div>
+        {start.trim() !== '' && (
+          <div className="pt-1">
+            <Label className="text-xs text-slate-500">Timezone</Label>
+            <Input
+              className="mt-1"
+              value={tz}
+              onChange={(e) => onChange({ tz: e.target.value })}
+              placeholder={BROWSER_ZONE}
+              list="iana-zones"
+            />
+            {/* Not a full picker: the browser supplies the list, and the backend rejects
+                anything that is not a real IANA id, so a typo fails loudly at save. */}
+            <datalist id="iana-zones">
+              {COMMON_ZONES.map((z) => (
+                <option key={z} value={z} />
+              ))}
+            </datalist>
+            <p className="text-xs text-gray-400 mt-1 leading-snug">
+              The hours above are read in this zone. Leave it as your own unless the window is
+              meant to follow somewhere else.
+            </p>
+          </div>
+        )}
+
+        {problem ? (
+          <p className="text-xs text-red-600 leading-snug">{problem}</p>
+        ) : mode === 'create' ? (
+          <p className="text-xs text-gray-400 leading-snug">
+            Leave both empty for no window. When set, production-elevated changes are refused
+            outside these hours.
+          </p>
+        ) : (
+          <p className="text-xs text-gray-400 leading-snug">
+            Changing the hours works. Clearing an existing window does not: the backend&apos;s
+            update endpoint ignores null on these fields, so emptying them here leaves the window
+            as it was.
+          </p>
+        )}
+      </div>
+    </>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
+
+// Defaults to the browser's zone: the person setting a window almost always means their own
+// working hours, and the previous behaviour (the server's zone, unstated) was the silent bug.
+const BROWSER_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+/** Suggestions only; any IANA id the backend accepts is valid. */
+const COMMON_ZONES = Array.from(
+  new Set([
+    BROWSER_ZONE,
+    'UTC',
+    'Asia/Ho_Chi_Minh',
+    'Asia/Singapore',
+    'Asia/Tokyo',
+    'Europe/London',
+    'Europe/Berlin',
+    'America/New_York',
+    'America/Los_Angeles',
+  ])
+)
+
+const EMPTY_FORM = {
+  name: '',
+  description: '',
+  type: 'DEVELOPMENT' as EnvType,
+  start: '',
+  end: '',
+  tz: BROWSER_ZONE,
+}
 
 export default function EnvironmentsPage() {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>()
@@ -89,10 +294,11 @@ export default function EnvironmentsPage() {
   const setCurrentEnv = useNavStore((s) => s.setCurrentEnv)
 
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '' })
+  const [form, setForm] = useState(EMPTY_FORM)
   const [editTarget, setEditTarget] = useState<Environment | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', description: '' })
+  const [editForm, setEditForm] = useState(EMPTY_FORM)
   const [deleteTarget, setDeleteTarget] = useState<Environment | null>(null)
+  const [secret, setSecret] = useState<EnvironmentSecret | null>(null)
 
   const { data: envs = [], isLoading } = useQuery({
     queryKey: ['envs', projectId],
@@ -100,24 +306,48 @@ export default function EnvironmentsPage() {
     enabled: !!projectId,
   })
 
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['envs', projectId] })
+
   const create = useMutation({
-    mutationFn: () => createEnvironment({ projectId: projectId!, ...form }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['envs', projectId] }); setOpen(false); setForm({ name: '', description: '' }) },
+    mutationFn: () =>
+      createEnvironment({
+        projectId: projectId!,
+        name: form.name,
+        description: form.description || undefined,
+        type: form.type,
+        changeWindowStartHour: toHour(form.start),
+        changeWindowEndHour: toHour(form.end),
+        changeWindowTimezone: toHour(form.start) === null ? null : form.tz,
+      }),
+    onSuccess: (created) => {
+      invalidate()
+      setOpen(false)
+      setForm(EMPTY_FORM)
+      setSecret(created)
+    },
   })
 
   const editMutation = useMutation({
-    mutationFn: () => updateEnvironment(editTarget!.id, editForm),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['envs', projectId] }); setEditTarget(null) },
+    mutationFn: () =>
+      updateEnvironment(editTarget!.id, {
+        name: editForm.name,
+        description: editForm.description || undefined,
+        type: editForm.type,
+        changeWindowStartHour: toHour(editForm.start),
+        changeWindowEndHour: toHour(editForm.end),
+        changeWindowTimezone: toHour(editForm.start) === null ? null : editForm.tz,
+      }),
+    onSuccess: () => { invalidate(); setEditTarget(null) },
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteEnvironment(deleteTarget!.id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['envs', projectId] }); setDeleteTarget(null) },
+    onSuccess: () => { invalidate(); setDeleteTarget(null) },
   })
 
   const rotate = useMutation({
     mutationFn: (envId: string) => rotateApiKey(envId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['envs', projectId] }),
+    onSuccess: (rotated) => { invalidate(); setSecret(rotated) },
   })
 
   const select = (env: Environment) => {
@@ -127,12 +357,21 @@ export default function EnvironmentsPage() {
 
   const openEdit = (e: React.MouseEvent, env: Environment) => {
     e.stopPropagation()
+    editMutation.reset()
     setEditTarget(env)
-    setEditForm({ name: env.name, description: env.description ?? '' })
+    setEditForm({
+      name: env.name,
+      description: env.description ?? '',
+      type: env.type,
+      start: env.changeWindowStartHour === null ? '' : String(env.changeWindowStartHour),
+      end: env.changeWindowEndHour === null ? '' : String(env.changeWindowEndHour),
+      tz: env.changeWindowTimezone ?? BROWSER_ZONE,
+    })
   }
 
   const openDelete = (e: React.MouseEvent, env: Environment) => {
     e.stopPropagation()
+    deleteMutation.reset()
     setDeleteTarget(env)
   }
 
@@ -149,7 +388,7 @@ export default function EnvironmentsPage() {
             </span>
           )}
         </div>
-        <Button onClick={() => setOpen(true)} className="gap-2 h-9 px-4 shadow-sm">
+        <Button onClick={() => { create.reset(); setOpen(true) }} className="gap-2 h-9 px-4 shadow-sm">
           <Plus className="w-4 h-4" />
           New environment
         </Button>
@@ -174,7 +413,7 @@ export default function EnvironmentsPage() {
           <p className="text-sm text-slate-400 mb-6 max-w-xs">
             Add environments like production, staging, or development to manage flags per context.
           </p>
-          <Button onClick={() => setOpen(true)} className="gap-2">
+          <Button onClick={() => { create.reset(); setOpen(true) }} className="gap-2">
             <Plus className="w-4 h-4" />
             New environment
           </Button>
@@ -185,8 +424,7 @@ export default function EnvironmentsPage() {
       {!isLoading && envs.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {envs.map((env) => {
-            const type = getEnvType(env.name)
-            const cfg = ENV_CONFIG[type]
+            const cfg = configFor(env.type)
             return (
               <div
                 key={env.id}
@@ -207,9 +445,6 @@ export default function EnvironmentsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-lg font-bold text-slate-900 leading-tight">{env.name}</p>
-                        <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border', cfg.badge)}>
-                          {cfg.label}
-                        </span>
                       </div>
                       {env.description
                         ? <p className="text-sm text-slate-500 mt-0.5 truncate">{env.description}</p>
@@ -221,6 +456,14 @@ export default function EnvironmentsPage() {
                       className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); rotate.mutate(env.id) }}
+                        disabled={rotate.isPending && rotate.variables === env.id}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                        title="Rotate API key"
+                      >
+                        <RefreshCw className={cn('w-4 h-4', rotate.isPending && rotate.variables === env.id && 'animate-spin')} />
+                      </button>
                       <button
                         onClick={(e) => openEdit(e, env)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
@@ -246,20 +489,18 @@ export default function EnvironmentsPage() {
                   </div>
                 </div>
 
-                {/* API Key row */}
-                <ApiKeyRow
-                  env={env}
-                  onRotate={() => rotate.mutate(env.id)}
-                  rotating={rotate.isPending && rotate.variables === env.id}
-                />
+                <ProtectionRow env={env} />
               </div>
             )
           })}
         </div>
       )}
 
+      {/* Rotation failures have no dialog of their own — surface them on the page. */}
+      <ApiError error={rotate.error} />
+
       {/* ── Create dialog ── */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) create.reset() }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>New environment</DialogTitle>
@@ -273,7 +514,6 @@ export default function EnvironmentsPage() {
                 placeholder="production"
                 autoFocus
               />
-              <p className="text-xs text-gray-400">e.g. production, staging, development</p>
             </div>
             <div className="space-y-1.5">
               <Label>Description <span className="text-gray-400">(optional)</span></Label>
@@ -283,15 +523,24 @@ export default function EnvironmentsPage() {
                 placeholder="A short description"
               />
             </div>
-            <Button className="w-full" onClick={() => create.mutate()} disabled={create.isPending || !form.name.trim()}>
-              {create.isPending ? 'Creating…' : 'Create environment'}
+            <ProtectionFields
+              mode="create"
+              type={form.type}
+              start={form.start}
+              end={form.end}
+              tz={form.tz}
+              onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+            />
+            <ApiError error={create.error} />
+            <Button className="w-full" onClick={() => create.mutate()} disabled={create.isPending || !form.name.trim() || !!windowProblem(form.start, form.end)}>
+              {create.isPending ? 'Creating...' : 'Create environment'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* ── Edit dialog ── */}
-      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+      <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) { setEditTarget(null); editMutation.reset() } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit environment</DialogTitle>
@@ -313,14 +562,23 @@ export default function EnvironmentsPage() {
                 placeholder="A short description"
               />
             </div>
+            <ProtectionFields
+              mode="edit"
+              type={editForm.type}
+              start={editForm.start}
+              end={editForm.end}
+              tz={editForm.tz}
+              onChange={(patch) => setEditForm((f) => ({ ...f, ...patch }))}
+            />
+            <ApiError error={editMutation.error} />
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setEditTarget(null)}>Cancel</Button>
               <Button
                 className="flex-1"
                 onClick={() => editMutation.mutate()}
-                disabled={editMutation.isPending || !editForm.name.trim()}
+                disabled={editMutation.isPending || !editForm.name.trim() || !!windowProblem(editForm.start, editForm.end)}
               >
-                {editMutation.isPending ? 'Saving…' : 'Save changes'}
+                {editMutation.isPending ? 'Saving...' : 'Save changes'}
               </Button>
             </div>
           </div>
@@ -328,16 +586,17 @@ export default function EnvironmentsPage() {
       </Dialog>
 
       {/* ── Delete confirm dialog ── */}
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); deleteMutation.reset() } }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete environment</DialogTitle>
           </DialogHeader>
           <div className="pt-1 space-y-4">
             <p className="text-sm text-gray-600">
-              Delete <span className="font-semibold text-gray-900">«{deleteTarget?.name}»</span>?{' '}
+              Delete <span className="font-semibold text-gray-900">{deleteTarget?.name}</span>?{' '}
               All its feature flag states will be removed. This cannot be undone.
             </p>
+            <ApiError error={deleteMutation.error} />
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setDeleteTarget(null)}>Cancel</Button>
               <Button
@@ -345,12 +604,14 @@ export default function EnvironmentsPage() {
                 onClick={() => deleteMutation.mutate()}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      <SecretDialog secret={secret} onClose={() => setSecret(null)} />
     </div>
   )
 }
