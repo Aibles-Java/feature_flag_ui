@@ -85,20 +85,66 @@ jobs:
           args: >
             -Dsonar.qualitygate.wait=true
 
+  # Image vulnerability scan as a CI gate, running in PARALLEL with `sonar` (both
+  # gated only on `test`), so a HIGH/CRITICAL base-image or dependency CVE is
+  # caught on the PR — BEFORE merge — not only after merge in the publish job.
+  # Builds the image locally (never pushed) and Trivy-scans the exact bits with
+  # the same policy + `.trivyignore` as the publish gate, and populates the shared
+  # GHA layer cache so the later `publish` build is a cache hit rather than a full
+  # rebuild. Needs no secrets, so it runs on fork PRs too. Skipped on
+  # `workflow_dispatch` (a redeploy of an already-published image builds nothing
+  # to scan). `publish` KEEPS its own post-build Trivy scan as the final
+  # time-of-ship gate: a CVE disclosed between merge and release is still blocked.
+  scan:
+    name: Scan image (Trivy)
+    needs: test
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (local only, for scanning)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: feature_flag_ui:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: feature_flag_ui:scan
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+
   # Build once with `load: true` (no push) so Trivy scans the exact bits about to
   # ship; only a clean HIGH/CRITICAL scan gets pushed to GHCR, reusing the GHA
   # layer cache. Only on a push (never a PR — forks can't be trusted with registry
   # creds) to develop/main or a `vX.Y.Z` tag, once `test` + `sonar` are green.
   publish:
     name: Publish Docker image (GHCR)
-    # Gated on BOTH `test` and `sonar`. `sonar` is SKIPPED on tag pushes and fork
-    # PRs; `!cancelled()` + explicit result checks allow `sonar == skipped` while
-    # still blocking on `sonar == failure/cancelled`.
-    needs: [test, sonar]
+    # Gated on `test`, `sonar` AND `scan`. `sonar` is SKIPPED on tag pushes and
+    # fork PRs; `!cancelled()` + explicit result checks allow `sonar == skipped`
+    # while still blocking on `sonar == failure/cancelled`. `scan` runs on every
+    # push (only skipped on workflow_dispatch, where publish is itself gated out),
+    # so it is required to be an explicit `success` here — a HIGH/CRITICAL Trivy
+    # finding blocks the image from shipping.
+    needs: [test, sonar, scan]
     if: >-
       ${{ !cancelled()
         && needs.test.result == 'success'
         && (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')
+        && needs.scan.result == 'success'
         && github.event_name == 'push'
         && (github.ref == 'refs/heads/develop'
           || github.ref == 'refs/heads/main'
