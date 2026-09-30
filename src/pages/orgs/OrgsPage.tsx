@@ -62,7 +62,7 @@ export default function OrgsPage() {
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {orgs.map((org) => (
-          <button
+          <button type="button"
             key={org.id}
             onClick={() => select(org)}
             className="group flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-[#93C5FD] hover:shadow-md hover:shadow-[#EFF6FF] transition-all text-left"
