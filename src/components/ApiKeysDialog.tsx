@@ -21,19 +21,40 @@ const fmt = (iso: string | null) => {
  * period leaves two working credentials while the SDK fleet redeploys. A list is therefore the
  * only honest way to show them — a single "the key" field cannot represent that state.
  */
+/**
+ * The expiry part of a create request. datetime-local gives "YYYY-MM-DDTHH:mm" and the backend
+ * wants a LocalDateTime in the future. Sending neither field gets the backend's default lifetime;
+ * the backend rejects expiresAt together with neverExpires, so at most one is sent.
+ */
+function expiryFields(expiresAt: string, neverExpires: boolean) {
+  if (neverExpires) return { neverExpires: true }
+  if (expiresAt) return { expiresAt: `${expiresAt}:00` }
+  return {}
+}
+
+/** Revoked beats everything; an inactive, unrevoked key has expired; a live rotated key is replaced. */
+function keyStatus(apiKey: ApiKey): 'Revoked' | 'Expired' | 'Replaced' | 'Active' {
+  if (apiKey.revokedAt) return 'Revoked'
+  if (!apiKey.active) return 'Expired'
+  if (apiKey.rotatedAt) return 'Replaced'
+  return 'Active'
+}
+
 function KeyRow({
   apiKey,
   onRevoke,
   onRotate,
   busy,
-}: {
+}: Readonly<{
   apiKey: ApiKey
   onRevoke: () => void
   onRotate: () => void
   busy: boolean
-}) {
-  const expired = !apiKey.revokedAt && !apiKey.active
-  const status = apiKey.revokedAt ? 'Revoked' : expired ? 'Expired' : 'Active'
+}>) {
+  const status = keyStatus(apiKey)
+  // A replaced key still authenticates through its grace period, but the backend refuses a
+  // second rotation of it — only revoking it early is left.
+  const canRotate = apiKey.rotatedAt === null
 
   return (
     <div
@@ -71,12 +92,15 @@ function KeyRow({
         <div className="text-[11px] text-slate-400 mt-1 space-x-3">
           <span>Created {fmt(apiKey.createdAt)}</span>
           {apiKey.expiresAt && <span>Expires {fmt(apiKey.expiresAt)}</span>}
+          {!apiKey.expiresAt && apiKey.active && <span>Never expires</span>}
           <span>{apiKey.lastUsedAt ? `Last used ${fmt(apiKey.lastUsedAt)}` : 'Never used'}</span>
         </div>
       </div>
       {apiKey.active && (
         <div className="flex items-center gap-0.5 shrink-0">
+          {canRotate && (
           <button
+            type="button"
             onClick={onRotate}
             disabled={busy}
             title="Rotate: issue a replacement"
@@ -84,7 +108,9 @@ function KeyRow({
           >
             <RefreshCw className={cn('w-4 h-4', busy && 'animate-spin')} />
           </button>
+          )}
           <button
+            type="button"
             onClick={onRevoke}
             disabled={busy}
             title="Revoke: stop this key working now"
@@ -103,15 +129,16 @@ export default function ApiKeysDialog({
   environmentName,
   open,
   onClose,
-}: {
+}: Readonly<{
   environmentId: string | null
   environmentName: string
   open: boolean
   onClose: () => void
-}) {
+}>) {
   const qc = useQueryClient()
   const [name, setName] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
+  const [neverExpires, setNeverExpires] = useState(false)
   const [secret, setSecret] = useState<string | null>(null)
   const [rotateTarget, setRotateTarget] = useState<ApiKey | null>(null)
   const [graceHours, setGraceHours] = useState('0')
@@ -128,14 +155,13 @@ export default function ApiKeysDialog({
     mutationFn: () =>
       createApiKey(environmentId!, {
         name: name.trim(),
-        // datetime-local gives "YYYY-MM-DDTHH:mm"; the backend wants a LocalDateTime and rejects
-        // anything not in the future.
-        expiresAt: expiresAt ? `${expiresAt}:00` : null,
+        ...expiryFields(expiresAt, neverExpires),
       }),
     onSuccess: (res) => {
       invalidate()
       setName('')
-      setExpiresAt('')
+      setExpiresAt('')
+      setNeverExpires(false)
       setSecret(res.apiKey)
     },
   })
@@ -157,7 +183,8 @@ export default function ApiKeysDialog({
 
   const closeAll = () => {
     setName('')
-    setExpiresAt('')
+    setExpiresAt('')
+    setNeverExpires(false)
     create.reset()
     revoke.reset()
     onClose()
@@ -212,11 +239,22 @@ export default function ApiKeysDialog({
                   className="w-52"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
+                  disabled={neverExpires}
                   title="Optional expiry"
                 />
               </div>
+              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="accent-[#2563EB] w-3.5 h-3.5"
+                  checked={neverExpires}
+                  onChange={(e) => setNeverExpires(e.target.checked)}
+                />
+                <span>Never expires</span>
+              </label>
               <p className="text-xs text-gray-400">
-                Expiry is optional. A key with none works until revoked.
+                Leave the date empty for the default lifetime of 90 days. A key that never expires
+                works until it is revoked.
               </p>
               <ApiError error={create.error} />
               <Button

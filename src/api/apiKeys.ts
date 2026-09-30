@@ -17,6 +17,11 @@ export interface ApiKey {
   keyPrefix: string
   expiresAt: string | null
   revokedAt: string | null
+  /**
+   * Set once a rotation has replaced this key. It may still authenticate until its grace deadline
+   * (`expiresAt`), but the backend refuses to rotate it again — rotate its replacement instead.
+   */
+  rotatedAt: string | null
   lastUsedAt: string | null
   createdBy: string | null
   createdAt: string
@@ -37,7 +42,9 @@ export const getApiKeys = (environmentId: string) =>
 
 export const createApiKey = (
   environmentId: string,
-  data: { name: string; expiresAt?: string | null }
+  // Omitting both expiresAt and neverExpires gets the backend's default lifetime (90 days); the
+  // backend rejects the two together.
+  data: { name: string; expiresAt?: string | null; neverExpires?: boolean }
 ) => api.post<ApiKeySecret>(`/environments/${environmentId}/api-keys`, data).then((r) => r.data)
 
 export const revokeApiKey = (environmentId: string, keyId: string) =>

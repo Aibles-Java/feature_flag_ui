@@ -10,6 +10,8 @@ export type AuditAction =
   | 'UNARCHIVE'
   | 'INVITE_MEMBER'
   | 'REMOVE_MEMBER'
+  | 'CREATE_API_KEY'
+  | 'REVOKE_API_KEY'
   | 'ROTATE_API_KEY'
   | 'CHANGE_STATE'
   | 'GRANT_PERMISSION'

@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Copy, Check, KeyRound, ShieldAlert } from 'lucide-react'
 
-export function CopyButton({ text }: { text: string }) {
+export function CopyButton({ text }: Readonly<{ text: string }>) {
   const [copied, setCopied] = useState(false)
   return (
     <button
+      type="button"
       onClick={() => {
         navigator.clipboard.writeText(text)
         setCopied(true)
@@ -32,11 +33,11 @@ export default function SecretDialog({
   title,
   apiKey,
   onClose,
-}: {
+}: Readonly<{
   title: string
   apiKey: string | null
   onClose: () => void
-}) {
+}>) {
   return (
     <Dialog open={!!apiKey} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg">
