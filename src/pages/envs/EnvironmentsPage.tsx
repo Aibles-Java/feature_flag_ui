@@ -78,7 +78,7 @@ function windowProblem(start: string, end: string): string | null {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text }: Readonly<{ text: string }>) {
   const [copied, setCopied] = useState(false)
   return (
     <button type="button"
@@ -437,9 +437,16 @@ export default function EnvironmentsPage() {
             return (
               <div
                 key={env.id}
-                className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer"
-                onClick={() => select(env)}
+                className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
               >
+                {/* The whole card opens the environment: a real button stretched over it gives
+                    keyboard and screen-reader access; the action buttons sit above it (z-10). */}
+                <button
+                  type="button"
+                  aria-label={`Open ${env.name}`}
+                  onClick={() => select(env)}
+                  className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-[#2563EB]"
+                />
                 {/* Color bar */}
                 <div className={cn('h-1.5 w-full', cfg.bar)} />
 
@@ -461,10 +468,7 @@ export default function EnvironmentsPage() {
                     </div>
 
                     {/* Action buttons — visible on hover */}
-                    <div
-                      className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="relative z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); rotate.mutate(env.id) }}
                         disabled={rotate.isPending && rotate.variables === env.id}

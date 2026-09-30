@@ -33,7 +33,7 @@ const typeConfig: Record<FlagValueType, { label: string; cls: string; icon: Reac
 
 // ─── Pill Toggle ──────────────────────────────────────────────────────────────
 
-function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
+function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string }>) {
   const qc = useQueryClient()
   const { data: state, isLoading } = useQuery({
     queryKey: ['flag-state', flagId, envId],
@@ -81,6 +81,12 @@ function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+
+/** Status dot: blue with no environment selected, else green when on and grey when off. */
+function dotColour(envId: string | undefined, isEnabled: boolean): string {
+  if (!envId) return 'bg-[#2563EB]'
+  return isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]'
+}
 export default function FlagsPage() {
   const { projectId, envId } = useParams<{ projectId: string; envId: string }>()
   const qc = useQueryClient()
@@ -174,7 +180,7 @@ export default function FlagsPage() {
   }
 
   const autoKey = (name: string) =>
-    name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '')
+    name.toLowerCase().replaceAll(/\s+/g, '-').replaceAll(/[^a-z0-9-_]/g, '')
 
   const colsWithEnv = 'grid-cols-[1fr_220px_110px_80px_160px]'
   const colsNoEnv   = 'grid-cols-[1fr_220px_110px_80px]'
@@ -318,7 +324,7 @@ export default function FlagsPage() {
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           'w-2 h-2 rounded-full shrink-0 transition-colors',
-                          envId ? (isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]') : 'bg-[#2563EB]'
+                          dotColour(envId, isEnabled)
                         )} />
                         <p className="text-sm font-semibold text-gray-900 truncate">{flag.name}</p>
                       </div>

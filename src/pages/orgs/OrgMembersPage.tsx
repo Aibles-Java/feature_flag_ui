@@ -310,9 +310,8 @@ export default function OrgMembersPage() {
                           ? `role:${row.role}`
                           : `custom:${row.customRoleId}`
                       }
-                      onValueChange={(v) => {
-                        const value = v ?? ''
-                        if (value.startsWith('role:')) {
+                      onValueChange={(value) => {
+                        if (value?.startsWith('role:')) {
                           updateRow(row.id, {
                             roleKind: 'BUILT_IN',
                             role: value.slice(5) as MemberRole,
@@ -321,7 +320,7 @@ export default function OrgMembersPage() {
                         } else {
                           updateRow(row.id, {
                             roleKind: 'CUSTOM',
-                            customRoleId: value.slice(7),
+                            customRoleId: (value ?? '').slice(7),
                             role: undefined,
                           })
                         }
@@ -332,9 +331,9 @@ export default function OrgMembersPage() {
                             list; the prefix is machinery, not something to show. */}
                         <SelectValue>
                           {(v) => {
-                            const value = (v as string | null) ?? ''
-                            if (value.startsWith('role:')) return <>{value.slice(5)}</>
-                            const custom = customRoles.find((c) => c.id === value.slice(7))
+                            const value = v as string | null
+                            if (value?.startsWith('role:')) return <>{value.slice(5)}</>
+                            const custom = customRoles.find((c) => c.id === value?.slice(7))
                             if (custom) return <>{custom.name}</>
                             return <span className="text-slate-400">Role</span>
                           }}

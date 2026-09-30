@@ -97,9 +97,15 @@ export default function ProjectsPage() {
         {projects.map((p, i) => (
           <div
             key={p.id}
-            className="group relative flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-[#93C5FD] hover:shadow-md hover:shadow-[#EFF6FF] transition-all cursor-pointer"
-            onClick={() => select(p)}
+            className="group relative flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-[#93C5FD] hover:shadow-md hover:shadow-[#EFF6FF] transition-all"
           >
+            {/* Stretched button: the card opens the project, the action buttons sit above it. */}
+            <button
+              type="button"
+              aria-label={`Open ${p.name}`}
+              onClick={() => select(p)}
+              className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-[#2563EB]"
+            />
             <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform`}>
               <FolderKanban className="w-7 h-7 text-white" />
             </div>
@@ -109,7 +115,7 @@ export default function ProjectsPage() {
                 ? <p className="text-sm text-gray-400 truncate mt-0.5">{p.description}</p>
                 : <p className="text-sm text-gray-300 mt-0.5">No description</p>}
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="relative z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
               <button type="button"
                 onClick={(e) => openEdit(e, p)}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
