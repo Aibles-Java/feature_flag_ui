@@ -21,7 +21,7 @@ const ACTION_STYLE: Partial<Record<AuditAction, string>> = {
   UNARCHIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
-const humanise = (value: string) => value.toLowerCase().replace(/_/g, ' ')
+const humanise = (value: string) => value.toLowerCase().replaceAll('_', ' ')
 
 const formatTime = (iso: string) => {
   const d = new Date(iso)

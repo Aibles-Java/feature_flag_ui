@@ -273,8 +273,8 @@ function ProtectionFields({
 const BROWSER_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 /** Suggestions only; any IANA id the backend accepts is valid. */
-const COMMON_ZONES = Array.from(
-  new Set([
+const COMMON_ZONES = [
+  ...new Set([
     BROWSER_ZONE,
     'UTC',
     'Asia/Ho_Chi_Minh',
@@ -284,8 +284,8 @@ const COMMON_ZONES = Array.from(
     'Europe/Berlin',
     'America/New_York',
     'America/Los_Angeles',
-  ])
-)
+  ]),
+]
 
 const EMPTY_FORM = {
   name: '',
