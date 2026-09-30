@@ -217,7 +217,7 @@ export default function OrgMembersPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <button
+                        <button type="button"
                           onClick={() => setRemoveTarget(m)}
                           className="p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
                           title="Remove from organisation"
@@ -247,7 +247,6 @@ export default function OrgMembersPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="teammate@company.com"
-                autoFocus
               />
               <p className="text-xs text-gray-400">
                 The person must already have an account. Adding someone does not create one.
@@ -311,9 +310,8 @@ export default function OrgMembersPage() {
                           ? `role:${row.role}`
                           : `custom:${row.customRoleId}`
                       }
-                      onValueChange={(v) => {
-                        const value = v ?? ''
-                        if (value.startsWith('role:')) {
+                      onValueChange={(value) => {
+                        if (value?.startsWith('role:')) {
                           updateRow(row.id, {
                             roleKind: 'BUILT_IN',
                             role: value.slice(5) as MemberRole,
@@ -322,7 +320,7 @@ export default function OrgMembersPage() {
                         } else {
                           updateRow(row.id, {
                             roleKind: 'CUSTOM',
-                            customRoleId: value.slice(7),
+                            customRoleId: (value ?? '').slice(7),
                             role: undefined,
                           })
                         }
@@ -333,10 +331,11 @@ export default function OrgMembersPage() {
                             list; the prefix is machinery, not something to show. */}
                         <SelectValue>
                           {(v) => {
-                            const value = (v as string | null) ?? ''
-                            if (value.startsWith('role:')) return value.slice(5)
-                            const custom = customRoles.find((c) => c.id === value.slice(7))
-                            return custom?.name ?? <span className="text-slate-400">Role</span>
+                            const value = v as string | null
+                            if (value?.startsWith('role:')) return <>{value.slice(5)}</>
+                            const custom = customRoles.find((c) => c.id === value?.slice(7))
+                            if (custom) return <>{custom.name}</>
+                            return <span className="text-slate-400">Role</span>
                           }}
                         </SelectValue>
                       </SelectTrigger>
@@ -376,11 +375,9 @@ export default function OrgMembersPage() {
                 checked={isOrgAdmin}
                 onChange={(e) => setIsOrgAdmin(e.target.checked)}
               />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-slate-800">
-                  Also an organisation admin
-                </span>
-                <span className="block text-xs text-slate-400 leading-snug">
+              <span className="min-w-0 text-sm font-medium text-slate-800">
+                Also an organisation admin{' '}
+                <span className="block text-xs font-normal text-slate-400 leading-snug">
                   Can add people and manage roles. Grants no project access on its own.
                 </span>
               </span>

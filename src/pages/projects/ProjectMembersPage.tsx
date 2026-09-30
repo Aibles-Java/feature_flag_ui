@@ -166,7 +166,7 @@ export default function ProjectMembersPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <button
+                      <button type="button"
                         onClick={() => setRevokeTarget(g)}
                         className="p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
                         title="Revoke grant"
@@ -201,7 +201,7 @@ export default function ProjectMembersPage() {
                           <span className="text-slate-400">Select an organisation member</span>
                         )
                       }
-                      return [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || m.email
+                      return <>{[m.firstName, m.lastName].filter(Boolean).join(' ').trim() || m.email}</>
                     }}
                   </SelectValue>
                 </SelectTrigger>
@@ -321,7 +321,7 @@ export default function ProjectMembersPage() {
               <span className="font-semibold text-gray-900">
                 {revokeTarget && grantName(revokeTarget)}
               </span>
-              ? They keep whatever their organisation role already gives them.
+              {'? They keep whatever their organisation role already gives them.'}
             </p>
             <ApiError error={revoke.error} />
             <div className="flex gap-2">

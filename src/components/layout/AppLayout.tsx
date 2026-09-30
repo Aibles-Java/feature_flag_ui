@@ -26,7 +26,7 @@ export default function AppLayout() {
 
   const handleLogout = async () => {
     // Best-effort server-side revoke; log out locally regardless of the result.
-    try { if (refreshToken) await revokeSession(refreshToken) } catch { /* ignore */ }
+    if (refreshToken) await revokeSession(refreshToken).catch(() => undefined)
     logout()
     navigate('/login')
   }
@@ -139,7 +139,7 @@ export default function AppLayout() {
 
             return (
               <div key={p.id}>
-                <button
+                <button type="button"
                   onClick={() => selectProject(p)}
                   className={cn(
                     'w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg text-sm transition-all font-medium',
@@ -155,7 +155,7 @@ export default function AppLayout() {
 
                 {isActive && (
                   <div className="ml-4 mt-1 pl-3 border-l border-white/10 pb-1">
-                    <button
+                    <button type="button"
                       onClick={() => navigate(`/orgs/${currentOrg!.id}/projects/${p.id}/members`)}
                       className={cn(
                         'w-full flex items-center gap-2.5 text-left px-2.5 py-1.5 rounded-md text-xs transition-all',
@@ -175,7 +175,7 @@ export default function AppLayout() {
                     {envs.map((e) => {
                       const active = currentEnv?.id === e.id
                       return (
-                        <button
+                        <button type="button"
                           key={e.id}
                           onClick={() => selectEnv(e)}
                           className={cn(
@@ -205,7 +205,7 @@ export default function AppLayout() {
               {orgLinks.map(({ to, label, icon: Icon }) => {
                 const active = location.pathname === to
                 return (
-                  <button
+                  <button type="button"
                     key={to}
                     onClick={() => navigate(to)}
                     className={cn(
@@ -234,7 +234,7 @@ export default function AppLayout() {
               <p className="text-xs font-semibold text-white/80 truncate">{email}</p>
               <p className="text-[10px] text-white/30 font-medium">Administrator</p>
             </div>
-            <button
+            <button type="button"
               onClick={() => void handleLogout()}
               title="Sign out"
               className="p-1.5 rounded-md hover:bg-white/10 text-white/25 hover:text-white/70 transition-colors"
@@ -250,13 +250,13 @@ export default function AppLayout() {
 
         {/* Top breadcrumb bar */}
         <header className="h-14 bg-white border-b border-[#E2E8F0] flex items-center px-8 gap-2 shrink-0 shadow-sm">
-          <button onClick={() => navigate('/orgs')} className="text-sm text-gray-400 hover:text-gray-700 transition-colors font-medium">
+          <button type="button" onClick={() => navigate('/orgs')} className="text-sm text-gray-400 hover:text-gray-700 transition-colors font-medium">
             {currentOrg?.name ?? 'Organizations'}
           </button>
           {currentProject && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
-              <button
+              <button type="button"
                 onClick={() => navigate(`/orgs/${currentOrg?.id}/projects/${currentProject.id}`)}
                 className="text-sm text-gray-400 hover:text-gray-700 transition-colors font-medium"
               >

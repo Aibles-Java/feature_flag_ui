@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
  * reports the refusal. That makes the wording of the refusal the entire feedback loop, which is
  * why the backend's `detail` is shown verbatim instead of a generic "something went wrong".
  */
-export default function ApiError({ error, className }: { error: unknown; className?: string }) {
+export default function ApiError({ error, className }: Readonly<{ error: unknown; className?: string }>) {
   if (!error) return null
   const forbidden = isForbidden(error)
   const Icon = forbidden ? ShieldAlert : AlertCircle

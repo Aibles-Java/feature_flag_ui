@@ -80,7 +80,7 @@ function windowProblem(start: string, end: string): string | null {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 /** Type + change window in one strip — the two attributes the backend's ABAC rules read. */
-function ProtectionRow({ env }: { env: Environment }) {
+function ProtectionRow({ env }: Readonly<{ env: Environment }>) {
   const cfg = configFor(env.type)
   const hasWindow = env.changeWindowStartHour !== null && env.changeWindowEndHour !== null
 
@@ -106,6 +106,28 @@ function ProtectionRow({ env }: { env: Environment }) {
 }
 
 /** Type + change window fields, shared by the create and edit dialogs. */
+/** The line under the change-window inputs: the validation problem if any, else a mode hint. */
+function WindowHint({ problem, mode }: Readonly<{ problem: string | null; mode: 'create' | 'edit' }>) {
+  if (problem) {
+    return <p className="text-xs text-red-600 leading-snug">{problem}</p>
+  }
+  if (mode === 'create') {
+    return (
+      <p className="text-xs text-gray-400 leading-snug">
+        Leave both empty for no window. When set, production-elevated changes are refused
+        outside these hours.
+      </p>
+    )
+  }
+  return (
+    <p className="text-xs text-gray-400 leading-snug">
+      Changing the hours works. Clearing an existing window does not: the backend&apos;s
+      update endpoint ignores null on these fields, so emptying them here leaves the window
+      as it was.
+    </p>
+  )
+}
+
 function ProtectionFields({
   type,
   start,
@@ -113,14 +135,14 @@ function ProtectionFields({
   tz,
   mode,
   onChange,
-}: {
+}: Readonly<{
   type: EnvType
   start: string
   end: string
   tz: string
   mode: 'create' | 'edit'
   onChange: (patch: { type?: EnvType; start?: string; end?: string; tz?: string }) => void
-}) {
+}>) {
   const problem = windowProblem(start, end)
   return (
     <>
@@ -192,20 +214,7 @@ function ProtectionFields({
           </div>
         )}
 
-        {problem ? (
-          <p className="text-xs text-red-600 leading-snug">{problem}</p>
-        ) : mode === 'create' ? (
-          <p className="text-xs text-gray-400 leading-snug">
-            Leave both empty for no window. When set, production-elevated changes are refused
-            outside these hours.
-          </p>
-        ) : (
-          <p className="text-xs text-gray-400 leading-snug">
-            Changing the hours works. Clearing an existing window does not: the backend&apos;s
-            update endpoint ignores null on these fields, so emptying them here leaves the window
-            as it was.
-          </p>
-        )}
+        <WindowHint problem={problem} mode={mode} />
       </div>
     </>
   )
@@ -218,8 +227,8 @@ function ProtectionFields({
 const BROWSER_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 /** Suggestions only; any IANA id the backend accepts is valid. */
-const COMMON_ZONES = Array.from(
-  new Set([
+const COMMON_ZONES = [
+  ...new Set([
     BROWSER_ZONE,
     'UTC',
     'Asia/Ho_Chi_Minh',
@@ -229,8 +238,8 @@ const COMMON_ZONES = Array.from(
     'Europe/Berlin',
     'America/New_York',
     'America/Los_Angeles',
-  ])
-)
+  ]),
+]
 
 const EMPTY_FORM = {
   name: '',
@@ -379,9 +388,16 @@ export default function EnvironmentsPage() {
             return (
               <div
                 key={env.id}
-                className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer"
-                onClick={() => select(env)}
+                className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
               >
+                {/* The whole card opens the environment: a real button stretched over it gives
+                    keyboard and screen-reader access; the action buttons sit above it (z-10). */}
+                <button
+                  type="button"
+                  aria-label={`Open ${env.name}`}
+                  onClick={() => select(env)}
+                  className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-[#2563EB]"
+                />
                 {/* Color bar */}
                 <div className={cn('h-1.5 w-full', cfg.bar)} />
 
@@ -403,25 +419,22 @@ export default function EnvironmentsPage() {
                     </div>
 
                     {/* Action buttons — visible on hover */}
-                    <div
-                      className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
+                    <div className="relative z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
+                      <button type="button"
                         onClick={(e) => { e.stopPropagation(); setKeysTarget(env) }}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
                         title="API keys"
                       >
                         <KeyRound className="w-4 h-4" />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={(e) => openEdit(e, env)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
                         title="Edit environment"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={(e) => openDelete(e, env)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="Delete environment"

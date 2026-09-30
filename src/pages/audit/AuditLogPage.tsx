@@ -21,7 +21,7 @@ const ACTION_STYLE: Partial<Record<AuditAction, string>> = {
   UNARCHIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
-const humanise = (value: string) => value.toLowerCase().replace(/_/g, ' ')
+const humanise = (value: string) => value.toLowerCase().replaceAll('_', ' ')
 
 const formatTime = (iso: string) => {
   const d = new Date(iso)
@@ -29,7 +29,7 @@ const formatTime = (iso: string) => {
 }
 
 /** Entity snapshots vary per type, so they are shown as raw JSON rather than guessed at. */
-function StateDiff({ entry }: { entry: AuditLogEntry }) {
+function StateDiff({ entry }: Readonly<{ entry: AuditLogEntry }>) {
   const [open, setOpen] = useState(false)
   if (!entry.beforeState && !entry.afterState) {
     return <span className="text-xs text-slate-300 italic">No snapshot</span>
@@ -37,7 +37,7 @@ function StateDiff({ entry }: { entry: AuditLogEntry }) {
 
   return (
     <div>
-      <button
+      <button type="button"
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-1 text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8]"
       >

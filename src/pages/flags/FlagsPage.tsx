@@ -33,7 +33,7 @@ const typeConfig: Record<FlagValueType, { label: string; cls: string; icon: Reac
 
 // ─── Pill Toggle ──────────────────────────────────────────────────────────────
 
-function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
+function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string }>) {
   const qc = useQueryClient()
   const { data: state, isLoading } = useQuery({
     queryKey: ['flag-state', flagId, envId],
@@ -58,7 +58,7 @@ function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
   // would otherwise repeat once per row as the user tries several flags.
   return (
     <>
-      <button
+      <button type="button"
         onClick={() => toggle.mutate(!enabled)}
         disabled={pending}
         className={cn(
@@ -81,6 +81,12 @@ function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+
+/** Status dot: blue with no environment selected, else green when on and grey when off. */
+function dotColour(envId: string | undefined, isEnabled: boolean): string {
+  if (!envId) return 'bg-[#2563EB]'
+  return isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]'
+}
 export default function FlagsPage() {
   const { projectId, envId } = useParams<{ projectId: string; envId: string }>()
   const qc = useQueryClient()
@@ -174,7 +180,7 @@ export default function FlagsPage() {
   }
 
   const autoKey = (name: string) =>
-    name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '')
+    name.toLowerCase().replaceAll(/\s+/g, '-').replaceAll(/[^a-z0-9-_]/g, '')
 
   const colsWithEnv = 'grid-cols-[1fr_220px_110px_80px_160px]'
   const colsNoEnv   = 'grid-cols-[1fr_220px_110px_80px]'
@@ -281,7 +287,7 @@ export default function FlagsPage() {
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <Search className="w-7 h-7 text-gray-300 mb-3" />
             <p className="text-sm font-medium text-gray-700">No flags match "{search}"</p>
-            <button onClick={() => setSearch('')} className="text-xs text-[#2563EB] mt-1 hover:underline">
+            <button type="button" onClick={() => setSearch('')} className="text-xs text-[#2563EB] mt-1 hover:underline">
               Clear search
             </button>
           </div>
@@ -318,7 +324,7 @@ export default function FlagsPage() {
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           'w-2 h-2 rounded-full shrink-0 transition-colors',
-                          envId ? (isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]') : 'bg-[#2563EB]'
+                          dotColour(envId, isEnabled)
                         )} />
                         <p className="text-sm font-semibold text-gray-900 truncate">{flag.name}</p>
                       </div>
@@ -347,14 +353,14 @@ export default function FlagsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-1">
-                      <button
+                      <button type="button"
                         onClick={() => openEdit(flag)}
                         className="p-1.5 rounded hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#2563EB] transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => setDeleteTarget(flag)}
                         className="p-1.5 rounded hover:bg-amber-50 text-gray-400 hover:text-amber-500 transition-colors"
                         title="Archive"
@@ -379,7 +385,7 @@ export default function FlagsPage() {
 
       {/* ── Archived ── */}
       <div className="rounded-xl border border-dashed border-[#E2E8F0] bg-white overflow-hidden">
-        <button
+        <button type="button"
           className="w-full flex items-center gap-2 px-5 py-3 text-sm font-medium text-[#64748B] hover:bg-[#F8FAFC] transition-colors"
           onClick={() => setShowArchived((v) => !v)}
         >
@@ -411,7 +417,7 @@ export default function FlagsPage() {
                     )}>
                       {tc?.icon}{tc?.label ?? flag.valueType}
                     </span>
-                    <button
+                    <button type="button"
                       onClick={() => unarchiveMutation.mutate(flag.id)}
                       disabled={unarchiveMutation.isPending}
                       className="flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-medium px-2.5 py-1.5 rounded-lg border border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors"

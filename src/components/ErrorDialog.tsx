@@ -16,10 +16,10 @@ import { problemMessage, isForbidden } from '@/api/problem'
 export default function ErrorDialog({
   error,
   onClose,
-}: {
+}: Readonly<{
   error: unknown
   onClose: () => void
-}) {
+}>) {
   const forbidden = isForbidden(error)
   const Icon = forbidden ? ShieldAlert : AlertCircle
 
