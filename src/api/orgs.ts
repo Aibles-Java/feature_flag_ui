@@ -1,4 +1,5 @@
 import api from './axios'
+import type { MemberRole } from './abac'
 import { pageItems, type Page } from './page'
 
 export interface Organization {
@@ -13,7 +14,7 @@ export interface Member {
   email: string
   firstName: string
   lastName: string
-  role: 'OWNER' | 'ADMIN' | 'VIEWER'
+  role: MemberRole
 }
 
 export const getOrgs = () =>
@@ -33,7 +34,31 @@ export const deleteOrg = (id: string) => api.delete(`/organisations/${id}`)
 export const getMembers = (orgId: string) =>
   api.get<Page<Member>>(`/organisations/${orgId}/members`).then((r) => pageItems(r.data))
 
-export const inviteMember = (orgId: string, data: { userId: string; role: string }) =>
+/**
+ * Adds someone by the address the admin already knows.
+ *
+ * The backend accepts `email` or `userId` and resolves the account itself. Email is what a UI can
+ * actually ask for: there is no user-directory endpoint, so the frontend has no way to turn an
+ * address into an id, which is why this used to demand a raw UUID.
+ */
+/** One project's worth of access, conferred as part of the invite. */
+export interface ProjectGrantSpec {
+  projectId: string
+  role?: MemberRole
+  customRoleId?: string
+}
+
+export interface InviteMemberPayload {
+  email: string
+  role: MemberRole
+  /**
+   * Applied in the same transaction as the membership, so a refusal on any one of them leaves
+   * no member behind. Omit or leave empty to add someone with no project access at all.
+   */
+  projectGrants?: ProjectGrantSpec[]
+}
+
+export const inviteMember = (orgId: string, data: InviteMemberPayload) =>
   api.post<Member>(`/organisations/${orgId}/members`, data).then((r) => r.data)
 
 export const removeMember = (orgId: string, userId: string) =>

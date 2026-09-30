@@ -84,8 +84,8 @@ export default function LoginPage() {
             Ship fearlessly.<br />Release confidently.
           </h2>
           <ul className="space-y-3">
-            {FEATURES.map((f, i) => (
-              <li key={i} className="flex items-center gap-3 text-white/80 text-sm">
+            {FEATURES.map((f) => (
+              <li key={f.text} className="flex items-center gap-3 text-white/80 text-sm">
                 <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                   {f.icon}
                 </span>

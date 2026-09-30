@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import ErrorDialog from '@/components/ErrorDialog'
+import ApiError from '@/components/ApiError'
 import {
   Flag, Plus, Search, ToggleLeft, Hash, Type, Braces,
   ToggleRight, Pencil, Archive, ArchiveRestore, ChevronDown, ChevronRight,
@@ -31,7 +33,7 @@ const typeConfig: Record<FlagValueType, { label: string; cls: string; icon: Reac
 
 // ─── Pill Toggle ──────────────────────────────────────────────────────────────
 
-function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
+function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string }>) {
   const qc = useQueryClient()
   const { data: state, isLoading } = useQuery({
     queryKey: ['flag-state', flagId, envId],
@@ -49,28 +51,42 @@ function FlagToggle({ flagId, envId }: { flagId: string; envId: string }) {
     return <div className="w-24 h-7 rounded-full bg-slate-100 animate-pulse" />
   }
 
+  // A refused toggle used to be silent: the pill renders from server state, so a 403 left it
+  // unchanged and the click looked like it did nothing. This is the single most likely place to
+  // meet an authorization refusal (a plain permission gap, a production-elevated action, or a
+  // change window), so it gets a dialog rather than text crammed beside the control — which
+  // would otherwise repeat once per row as the user tries several flags.
   return (
-    <button
-      onClick={() => toggle.mutate(!enabled)}
-      disabled={pending}
-      className={cn(
-        'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all select-none',
-        enabled
-          ? 'bg-[#10B981] text-white hover:bg-[#059669] shadow-sm shadow-[#10B981]/25'
-          : 'bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]',
-        pending && 'opacity-60 cursor-not-allowed',
-      )}
-    >
-      {pending
-        ? <Loader2 className="w-3 h-3 animate-spin" />
-        : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-[#94A3B8]')} />}
-      {enabled ? 'Enabled' : 'Disabled'}
-    </button>
+    <>
+      <button type="button"
+        onClick={() => toggle.mutate(!enabled)}
+        disabled={pending}
+        className={cn(
+          'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all select-none',
+          enabled
+            ? 'bg-[#10B981] text-white hover:bg-[#059669] shadow-sm shadow-[#10B981]/25'
+            : 'bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]',
+          pending && 'opacity-60 cursor-not-allowed',
+        )}
+      >
+        {pending
+          ? <Loader2 className="w-3 h-3 animate-spin" />
+          : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-[#94A3B8]')} />}
+        {enabled ? 'Enabled' : 'Disabled'}
+      </button>
+      <ErrorDialog error={toggle.error} onClose={() => toggle.reset()} />
+    </>
   )
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+
+/** Status dot: blue with no environment selected, else green when on and grey when off. */
+function dotColour(envId: string | undefined, isEnabled: boolean): string {
+  if (!envId) return 'bg-[#2563EB]'
+  return isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]'
+}
 export default function FlagsPage() {
   const { projectId, envId } = useParams<{ projectId: string; envId: string }>()
   const qc = useQueryClient()
@@ -164,7 +180,7 @@ export default function FlagsPage() {
   }
 
   const autoKey = (name: string) =>
-    name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '')
+    name.toLowerCase().replaceAll(/\s+/g, '-').replaceAll(/[^a-z0-9-_]/g, '')
 
   const colsWithEnv = 'grid-cols-[1fr_220px_110px_80px_160px]'
   const colsNoEnv   = 'grid-cols-[1fr_220px_110px_80px]'
@@ -271,7 +287,7 @@ export default function FlagsPage() {
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <Search className="w-7 h-7 text-gray-300 mb-3" />
             <p className="text-sm font-medium text-gray-700">No flags match "{search}"</p>
-            <button onClick={() => setSearch('')} className="text-xs text-[#2563EB] mt-1 hover:underline">
+            <button type="button" onClick={() => setSearch('')} className="text-xs text-[#2563EB] mt-1 hover:underline">
               Clear search
             </button>
           </div>
@@ -308,7 +324,7 @@ export default function FlagsPage() {
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           'w-2 h-2 rounded-full shrink-0 transition-colors',
-                          envId ? (isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]') : 'bg-[#2563EB]'
+                          dotColour(envId, isEnabled)
                         )} />
                         <p className="text-sm font-semibold text-gray-900 truncate">{flag.name}</p>
                       </div>
@@ -337,14 +353,14 @@ export default function FlagsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-1">
-                      <button
+                      <button type="button"
                         onClick={() => openEdit(flag)}
                         className="p-1.5 rounded hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#2563EB] transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => setDeleteTarget(flag)}
                         className="p-1.5 rounded hover:bg-amber-50 text-gray-400 hover:text-amber-500 transition-colors"
                         title="Archive"
@@ -369,7 +385,7 @@ export default function FlagsPage() {
 
       {/* ── Archived ── */}
       <div className="rounded-xl border border-dashed border-[#E2E8F0] bg-white overflow-hidden">
-        <button
+        <button type="button"
           className="w-full flex items-center gap-2 px-5 py-3 text-sm font-medium text-[#64748B] hover:bg-[#F8FAFC] transition-colors"
           onClick={() => setShowArchived((v) => !v)}
         >
@@ -401,7 +417,7 @@ export default function FlagsPage() {
                     )}>
                       {tc?.icon}{tc?.label ?? flag.valueType}
                     </span>
-                    <button
+                    <button type="button"
                       onClick={() => unarchiveMutation.mutate(flag.id)}
                       disabled={unarchiveMutation.isPending}
                       className="flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-medium px-2.5 py-1.5 rounded-lg border border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors"
@@ -447,7 +463,11 @@ export default function FlagsPage() {
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Value type</Label>
               <Select value={form.valueType} onValueChange={(v) => setForm((f) => ({ ...f, valueType: v as FlagValueType }))}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                {/* Same reason as the environment type select: the list shows "Boolean" while
+                    the trigger would otherwise show the raw enum "BOOLEAN" back. */}
+                <SelectTrigger className="h-10">
+                  <SelectValue>{(v) => typeConfig[v as FlagValueType]?.label ?? String(v)}</SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {VALUE_TYPES.map((t) => (
                     <SelectItem key={t} value={t}>
@@ -490,6 +510,7 @@ export default function FlagsPage() {
             </div>
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1 h-10" onClick={() => setEditTarget(null)}>Cancel</Button>
+              <ApiError error={editMutation.error} className="mb-1" />
               <Button className="flex-1 h-10" onClick={() => editMutation.mutate()} disabled={editMutation.isPending || !editForm.name}>
                 {editMutation.isPending ? 'Saving…' : 'Save changes'}
               </Button>
@@ -508,6 +529,7 @@ export default function FlagsPage() {
             </p>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 h-10" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <ApiError error={archiveMutation.error} className="mb-1" />
               <Button variant="destructive" className="flex-1 h-10" onClick={() => archiveMutation.mutate()} disabled={archiveMutation.isPending}>
                 {archiveMutation.isPending ? 'Archiving…' : 'Archive'}
               </Button>
@@ -515,6 +537,9 @@ export default function FlagsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Unarchive is an inline row action with no form to host a banner. */}
+      <ErrorDialog error={unarchiveMutation.error} onClose={() => unarchiveMutation.reset()} />
     </div>
   )
 }
