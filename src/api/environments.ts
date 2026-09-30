@@ -73,6 +73,12 @@ export const updateEnvironment = (id: string, data: EnvironmentPayload) =>
 
 export const deleteEnvironment = (id: string) => api.delete(`/environments/${id}`)
 
-/** Also returns the plaintext key once; the previous key stops working immediately. */
+/**
+ * Legacy env-level rotation: one key per environment, hard cutover, no grace period.
+ *
+ * Superseded by the per-key endpoints in `apiKeys.ts`, but kept because the backend still serves
+ * it and it is the only rotation available until the API key lifecycle work merges. Nothing calls
+ * it from the UI any more.
+ */
 export const rotateApiKey = (id: string) =>
   api.post<EnvironmentSecret>(`/environments/${id}/api-key/rotate`).then((r) => r.data)

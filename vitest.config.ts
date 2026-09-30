@@ -26,6 +26,7 @@ export default defineConfig({
         'src/api/grants.ts',
         'src/api/problem.ts',
         'src/api/roles.ts',
+        'src/api/apiKeys.ts',
       ],
     },
   },

@@ -27,6 +27,7 @@ describe('abac vocabulary', () => {
       'ROLE_MANAGE', 'AUDIT_READ',
       'ENV_EXPORT', 'WEBHOOK_READ', 'WEBHOOK_MANAGE',
       'ORG_READ', 'MEMBER_READ', 'WEBHOOK_MANAGE_PRODUCTION',
+      'ENV_KEY_CREATE', 'ENV_KEY_CREATE_PRODUCTION', 'ENV_KEY_REVOKE', 'ENV_KEY_REVOKE_PRODUCTION',
     ]
     expect([...ALL_ACTIONS].sort()).toEqual([...backend].sort())
   })
@@ -62,8 +63,8 @@ describe('role action mirror', () => {
     // Mirrors PermissionService.buildRoleActions(): 4 / 4+14 / 18+9.
     expect(ROLE_ACTIONS.MEMBER).toHaveLength(2)
     expect(ROLE_ACTIONS.VIEWER).toHaveLength(7)
-    expect(ROLE_ACTIONS.ADMIN).toHaveLength(23)
-    expect(ROLE_ACTIONS.OWNER).toHaveLength(33)
+    expect(ROLE_ACTIONS.ADMIN).toHaveLength(25)
+    expect(ROLE_ACTIONS.OWNER).toHaveLength(37)
   })
 
   it('MEMBER reaches no project but can still read the organisation it belongs to', () => {
