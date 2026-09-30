@@ -201,7 +201,7 @@ export default function ProjectMembersPage() {
                           <span className="text-slate-400">Select an organisation member</span>
                         )
                       }
-                      return [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || m.email
+                      return <>{[m.firstName, m.lastName].filter(Boolean).join(' ').trim() || m.email}</>
                     }}
                   </SelectValue>
                 </SelectTrigger>

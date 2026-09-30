@@ -247,7 +247,6 @@ export default function OrgMembersPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="teammate@company.com"
-                autoFocus
               />
               <p className="text-xs text-gray-400">
                 The person must already have an account. Adding someone does not create one.
@@ -334,9 +333,10 @@ export default function OrgMembersPage() {
                         <SelectValue>
                           {(v) => {
                             const value = (v as string | null) ?? ''
-                            if (value.startsWith('role:')) return value.slice(5)
+                            if (value.startsWith('role:')) return <>{value.slice(5)}</>
                             const custom = customRoles.find((c) => c.id === value.slice(7))
-                            return custom?.name ?? <span className="text-slate-400">Role</span>
+                            if (custom) return <>{custom.name}</>
+                            return <span className="text-slate-400">Role</span>
                           }}
                         </SelectValue>
                       </SelectTrigger>

@@ -44,12 +44,12 @@ function ActionPicker({
   conferable,
   role,
   onToggle,
-}: {
+}: Readonly<{
   selected: Set<Action>
   conferable: Set<Action> | null
   role: MemberRole | null
   onToggle: (action: Action) => void
-}) {
+}>) {
   return (
     <div className="space-y-4 max-h-[45vh] overflow-y-auto pr-1">
       {ACTION_GROUPS.map((group) => {
@@ -305,7 +305,6 @@ export default function CustomRolesPage() {
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="Flag operator"
-                autoFocus
               />
             </div>
 

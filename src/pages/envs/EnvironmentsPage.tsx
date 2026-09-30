@@ -98,7 +98,7 @@ function CopyButton({ text }: { text: string }) {
  * from create and rotate. So there is no "reveal" affordance to offer on a card — there is
  * nothing to reveal. Miss this dialog and the only way back is another rotation.
  */
-function SecretDialog({ secret, onClose }: { secret: EnvironmentSecret | null; onClose: () => void }) {
+function SecretDialog({ secret, onClose }: Readonly<{ secret: EnvironmentSecret | null; onClose: () => void }>) {
   return (
     <Dialog open={!!secret} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg">
@@ -126,7 +126,7 @@ function SecretDialog({ secret, onClose }: { secret: EnvironmentSecret | null; o
 }
 
 /** Type + change window in one strip — the two attributes the backend's ABAC rules read. */
-function ProtectionRow({ env }: { env: Environment }) {
+function ProtectionRow({ env }: Readonly<{ env: Environment }>) {
   const cfg = configFor(env.type)
   const hasWindow = env.changeWindowStartHour !== null && env.changeWindowEndHour !== null
 
@@ -181,14 +181,14 @@ function ProtectionFields({
   tz,
   mode,
   onChange,
-}: {
+}: Readonly<{
   type: EnvType
   start: string
   end: string
   tz: string
   mode: 'create' | 'edit'
   onChange: (patch: { type?: EnvType; start?: string; end?: string; tz?: string }) => void
-}) {
+}>) {
   const problem = windowProblem(start, end)
   return (
     <>

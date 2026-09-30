@@ -29,7 +29,7 @@ const formatTime = (iso: string) => {
 }
 
 /** Entity snapshots vary per type, so they are shown as raw JSON rather than guessed at. */
-function StateDiff({ entry }: { entry: AuditLogEntry }) {
+function StateDiff({ entry }: Readonly<{ entry: AuditLogEntry }>) {
   const [open, setOpen] = useState(false)
   if (!entry.beforeState && !entry.afterState) {
     return <span className="text-xs text-slate-300 italic">No snapshot</span>
