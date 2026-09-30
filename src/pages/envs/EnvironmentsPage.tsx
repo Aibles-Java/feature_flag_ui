@@ -81,7 +81,7 @@ function windowProblem(start: string, end: string): string | null {
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
   return (
-    <button
+    <button type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
       className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
       title="Copy"
@@ -465,7 +465,7 @@ export default function EnvironmentsPage() {
                       className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
+                      <button type="button"
                         onClick={(e) => { e.stopPropagation(); rotate.mutate(env.id) }}
                         disabled={rotate.isPending && rotate.variables === env.id}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
@@ -473,14 +473,14 @@ export default function EnvironmentsPage() {
                       >
                         <RefreshCw className={cn('w-4 h-4', rotate.isPending && rotate.variables === env.id && 'animate-spin')} />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={(e) => openEdit(e, env)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
                         title="Edit environment"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={(e) => openDelete(e, env)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="Delete environment"

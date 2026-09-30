@@ -110,13 +110,13 @@ export default function ProjectsPage() {
                 : <p className="text-sm text-gray-300 mt-0.5">No description</p>}
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
+              <button type="button"
                 onClick={(e) => openEdit(e, p)}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
               >
                 <Pencil className="w-4 h-4" />
               </button>
-              <button
+              <button type="button"
                 onClick={(e) => openDelete(e, p)}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
               >

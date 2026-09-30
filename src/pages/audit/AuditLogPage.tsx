@@ -37,7 +37,7 @@ function StateDiff({ entry }: Readonly<{ entry: AuditLogEntry }>) {
 
   return (
     <div>
-      <button
+      <button type="button"
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-1 text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8]"
       >

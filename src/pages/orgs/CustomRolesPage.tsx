@@ -248,14 +248,14 @@ export default function CustomRolesPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <button
+                  <button type="button"
                     onClick={() => openEdit(role)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
                     title="Edit role"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => setDeleteTarget(role)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                     title="Delete role"

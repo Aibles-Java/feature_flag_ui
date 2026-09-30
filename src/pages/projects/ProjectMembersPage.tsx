@@ -166,7 +166,7 @@ export default function ProjectMembersPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <button
+                      <button type="button"
                         onClick={() => setRevokeTarget(g)}
                         className="p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
                         title="Revoke grant"
