@@ -18,6 +18,15 @@ import ApiError from '@/components/ApiError'
 import { KeyRound, Plus, Pencil, Trash2, ShieldAlert, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+/** Chip styling for one action checkbox: locked, then selected (amber on production), then idle. */
+function actionChipClass(locked: boolean, checked: boolean, isProduction: boolean): string {
+  if (locked) return 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
+  if (!checked) return 'border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer'
+  return isProduction
+    ? 'border-amber-300 bg-amber-50 text-amber-900 font-medium cursor-pointer'
+    : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8] font-medium cursor-pointer'
+}
+
 /**
  * Editing surface for an org-scoped custom role.
  *
@@ -76,13 +85,7 @@ function ActionPicker({
                     }
                     className={cn(
                       'flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-colors',
-                      locked
-                        ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
-                        : checked
-                          ? isProduction
-                            ? 'border-amber-300 bg-amber-50 text-amber-900 font-medium cursor-pointer'
-                            : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8] font-medium cursor-pointer'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer'
+                      actionChipClass(locked, checked, isProduction)
                     )}
                   >
                     <input
@@ -139,6 +142,9 @@ export default function CustomRolesPage() {
       closeDialog()
     },
   })
+
+  let saveLabel = editTarget ? 'Save changes' : 'Create role'
+  if (save.isPending) saveLabel = 'Saving...'
 
   const remove = useMutation({
     mutationFn: () => deleteCustomRole(orgId!, deleteTarget!.id),
@@ -333,7 +339,7 @@ export default function CustomRolesPage() {
                 onClick={() => save.mutate()}
                 disabled={save.isPending || !form.name.trim()}
               >
-                {save.isPending ? 'Saving...' : editTarget ? 'Save changes' : 'Create role'}
+                {saveLabel}
               </Button>
             </div>
           </div>

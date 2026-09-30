@@ -152,6 +152,28 @@ function ProtectionRow({ env }: { env: Environment }) {
 }
 
 /** Type + change window fields, shared by the create and edit dialogs. */
+/** The line under the change-window inputs: the validation problem if any, else a mode hint. */
+function WindowHint({ problem, mode }: Readonly<{ problem: string | null; mode: 'create' | 'edit' }>) {
+  if (problem) {
+    return <p className="text-xs text-red-600 leading-snug">{problem}</p>
+  }
+  if (mode === 'create') {
+    return (
+      <p className="text-xs text-gray-400 leading-snug">
+        Leave both empty for no window. When set, production-elevated changes are refused
+        outside these hours.
+      </p>
+    )
+  }
+  return (
+    <p className="text-xs text-gray-400 leading-snug">
+      Changing the hours works. Clearing an existing window does not: the backend&apos;s
+      update endpoint ignores null on these fields, so emptying them here leaves the window
+      as it was.
+    </p>
+  )
+}
+
 function ProtectionFields({
   type,
   start,
@@ -238,20 +260,7 @@ function ProtectionFields({
           </div>
         )}
 
-        {problem ? (
-          <p className="text-xs text-red-600 leading-snug">{problem}</p>
-        ) : mode === 'create' ? (
-          <p className="text-xs text-gray-400 leading-snug">
-            Leave both empty for no window. When set, production-elevated changes are refused
-            outside these hours.
-          </p>
-        ) : (
-          <p className="text-xs text-gray-400 leading-snug">
-            Changing the hours works. Clearing an existing window does not: the backend&apos;s
-            update endpoint ignores null on these fields, so emptying them here leaves the window
-            as it was.
-          </p>
-        )}
+        <WindowHint problem={problem} mode={mode} />
       </div>
     </>
   )
