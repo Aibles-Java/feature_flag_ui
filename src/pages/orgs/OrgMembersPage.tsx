@@ -376,7 +376,7 @@ export default function OrgMembersPage() {
                 onChange={(e) => setIsOrgAdmin(e.target.checked)}
               />
               <span className="min-w-0 text-sm font-medium text-slate-800">
-                Also an organisation admin
+                Also an organisation admin{' '}
                 <span className="block text-xs font-normal text-slate-400 leading-snug">
                   Can add people and manage roles. Grants no project access on its own.
                 </span>

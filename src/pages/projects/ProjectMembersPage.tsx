@@ -321,7 +321,7 @@ export default function ProjectMembersPage() {
               <span className="font-semibold text-gray-900">
                 {revokeTarget && grantName(revokeTarget)}
               </span>
-              ? They keep whatever their organisation role already gives them.
+              {'? They keep whatever their organisation role already gives them.'}
             </p>
             <ApiError error={revoke.error} />
             <div className="flex gap-2">
