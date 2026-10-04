@@ -19,6 +19,8 @@ export interface FlagState {
   environmentId: string
   enabled: boolean
   value?: string
+  rolloutPercent: number
+  lastEvaluatedAt?: string | null
 }
 
 export const getFlags = (projectId: string) =>
@@ -49,5 +51,9 @@ export const getArchivedFlags = (projectId: string) =>
 export const getFlagState = (flagId: string, envId: string) =>
   api.get<FlagState>(`/flags/${flagId}/environments/${envId}`).then((r) => r.data)
 
-export const updateFlagState = (flagId: string, envId: string, data: { enabled: boolean; value?: string }) =>
+export const updateFlagState = (
+  flagId: string,
+  envId: string,
+  data: { enabled: boolean; value?: string; rolloutPercent?: number },
+) =>
   api.put<FlagState>(`/flags/${flagId}/environments/${envId}`, data).then((r) => r.data)
