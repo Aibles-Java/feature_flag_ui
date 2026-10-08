@@ -252,8 +252,12 @@ describe('S-2.16 legacy single-env route toggle', () => {
     mock.onGet(dev).reply(200, stateOf(f1, ENV_DEV))
     mock.onPut(dev).reply(409)
     const { user } = mountLegacy()
-    await user.click(await screen.findByRole('button', { name: 'Disabled' }))
+    const btn = await screen.findByRole('button', { name: 'Disabled' })
+    mock.resetHistory()
+    await user.click(btn)
     expect(await screen.findByRole('dialog', { name: /Someone else changed this/ })).toBeInTheDocument()
+    // written from the displayed state: the PUT is the first request after the click (no GET first)
+    expect(mock.history[0].method).toBe('put')
     expect(JSON.parse(mock.history.put[0].data).version).toBe(5)
     expect(matrixCalls()).toHaveLength(0) // legacy route never calls the matrix endpoint
   })

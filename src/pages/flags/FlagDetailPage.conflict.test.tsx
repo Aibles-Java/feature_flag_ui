@@ -87,6 +87,7 @@ describe('S-2.16 detail editor (non-PROD)', () => {
     expect(within(table).getByText('mine')).toBeInTheDocument() // the user's edit, side by side
     expect(within(table).getByText('80%')).toBeInTheDocument()
     expect(screen.queryByText('modified by someone else')).not.toBeInTheDocument() // not the raw error banner
+    expect(screen.queryByText('Someone else changed this state')).not.toBeInTheDocument() // nor the inline ApiError
     expect(puts()).toHaveLength(1)
 
     await user.click(within(dlg).getByRole('button', { name: 'Review my edits' }))
