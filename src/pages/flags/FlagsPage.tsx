@@ -7,7 +7,10 @@ import {
   MAX_FLAGS_PAGE_SIZE, type FlagValueType, type FeatureFlag,
 } from '@/api/flags'
 import { toggleFlagEnabled } from '@/api/flagToggle'
-import { cellQueryKey, fetchCellState } from '@/api/flagMatrix'
+import { cellQueryKey, fetchCellState, invalidateStateQueries } from '@/api/flagMatrix'
+import { isStateConflict, withConflictReload } from '@/api/stateConflict'
+import { useFlagMatrix } from '@/hooks/useFlagMatrix'
+import StateConflictDialog from '@/components/flags/StateConflictDialog'
 import FlagMatrix from '@/components/matrix/FlagMatrix'
 import { useEnvParam } from '@/hooks/useEnvParam'
 import { Button } from '@/components/ui/button'
@@ -37,7 +40,8 @@ const typeConfig: Record<FlagValueType, { label: string; cls: string; icon: Reac
 
 // ─── Pill Toggle ──────────────────────────────────────────────────────────────
 
-function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string }>) {
+function FlagToggle({ flag, envId }: Readonly<{ flag: FeatureFlag; envId: string }>) {
+  const flagId = flag.id
   const qc = useQueryClient()
   const { data: state, isLoading } = useQuery({
     queryKey: ['flag-state', flagId, envId],
@@ -45,9 +49,11 @@ function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string 
   })
   const toggle = useMutation({
     // S-0.1: reload + send the full state (value, rolloutPercent) - see api/flagToggle.ts.
-    mutationFn: (enabled: boolean) => toggleFlagEnabled(flagId, envId, enabled),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['flag-state', flagId, envId] }),
+    // Sends the version of the state shown here; a 409 reverts to the latest (S-2.16).
+    mutationFn: (enabled: boolean) => withConflictReload(flagId, envId, () => toggleFlagEnabled(flagId, envId, enabled, state)),
+    onSettled: () => invalidateStateQueries(qc, flag, envId),
   })
+  const conflict = isStateConflict(toggle.error) ? toggle.error : null
 
   const enabled = state?.enabled ?? false
   const pending = toggle.isPending || isLoading
@@ -79,13 +85,34 @@ function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string 
           : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-faint')} />}
         {enabled ? 'Enabled' : 'Disabled'}
       </button>
-      <ErrorDialog error={toggle.error} onClose={() => toggle.reset()} />
+      <ErrorDialog error={conflict ? null : toggle.error} onClose={() => toggle.reset()} />
+      <StateConflictDialog open={conflict !== null} subject={flag.name} latest={conflict?.latest ?? null} onClose={() => toggle.reset()} />
     </>
   )
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+
+/**
+ * Announces the matrix request outcome (S-2.15). Loading and 429 replace the grid (nothing to
+ * show yet); a 429 on a refresh keeps the grid and says the data may be stale. No retry button on
+ * purpose: the single automatic retry waits for Retry-After, so there is no request storm.
+ */
+function MatrixStatus({ matrix }: Readonly<{ matrix: ReturnType<typeof useFlagMatrix> }>) {
+  if (matrix.rateLimited) {
+    return (
+      <p role="status" className="mx-5 my-3 rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-text">
+        Too many requests. {matrix.index ? 'Showing the last loaded data. ' : ''}Retrying automatically in {matrix.retryAfter} seconds.
+      </p>
+    )
+  }
+  if (matrix.mode === 'loading') {
+    return <p role="status" className="px-5 py-6 text-sm text-muted-foreground">Loading flag states...</p>
+  }
+  if (matrix.mode === 'error') return <div className="px-5 py-3"><ApiError error={matrix.error} /></div>
+  return null
+}
 
 /** Status dot: blue with no environment selected, else green when on and grey when off. */
 function dotColour(envId: string | undefined, isEnabled: boolean): string {
@@ -147,6 +174,10 @@ export default function FlagsPage() {
 
   const activeFlags = useMemo(() => flags.filter((f) => !f.archived), [flags])
 
+  // S-2.15: on the matrix route the whole page's states come from ONE request. If that fails with
+  // 404/5xx/network the cells fall back to the phase 1 per-cell path (fetchCellState, D-20).
+  const matrix = useFlagMatrix(projectId, pageIndex, !legacyEnvId)
+
   const flagStateQueries = useQueries({
     queries: envId ? activeFlags.map((f) => (legacyEnvId
       ? { queryKey: ['flag-state', f.id, envId], queryFn: () => getFlagState(f.id, envId) }
@@ -154,16 +185,20 @@ export default function FlagsPage() {
       // cache for the "Enabled" stat, so it must not issue its own requests.
       : { queryKey: cellQueryKey(f.id, envId), queryFn: () => fetchCellState(f.id, envId), enabled: false })) : [],
   })
-  const enabledCount = flagStateQueries.filter((q) => q.data?.enabled).length
+  // Matrix data wins when present; otherwise the per-cell cache (legacy route / fallback).
+  const enabledIn = (flagId: string, i: number) =>
+    (envId ? matrix.index?.get(flagId)?.get(envId)?.enabled : undefined) ?? flagStateQueries[i]?.data?.enabled ?? false
+  const enabledCount = activeFlags.filter((f, i) => enabledIn(f.id, i)).length
 
   // map flagId → enabled for row dot colour
   const enabledById = useMemo(() => {
     const m: Record<string, boolean> = {}
     activeFlags.forEach((f, i) => {
-      m[f.id] = flagStateQueries[i]?.data?.enabled ?? false
+      m[f.id] = enabledIn(f.id, i)
     })
     return m
-  }, [activeFlags, flagStateQueries])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFlags, flagStateQueries, matrix.index, envId])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return activeFlags
@@ -359,7 +394,11 @@ export default function FlagsPage() {
 
         {/* Matrix (flag-centric route, S-1.4a/b) */}
         {!isLoading && filtered.length > 0 && !legacyEnvId && (
+          <MatrixStatus matrix={matrix} />
+        )}
+        {!isLoading && filtered.length > 0 && !legacyEnvId && matrix.mode !== 'loading' && matrix.mode !== 'rate-limited' && matrix.mode !== 'error' && (
           <FlagMatrix
+            matrixStates={matrix.index}
             flags={filtered}
             environments={environments}
             focusEnvId={envId}
@@ -476,7 +515,7 @@ export default function FlagsPage() {
                     {/* Toggle */}
                     {envId && (
                       <div className="flex justify-end">
-                        <FlagToggle flagId={flag.id} envId={envId} />
+                        <FlagToggle flag={flag} envId={envId} />
                       </div>
                     )}
                   </div>
