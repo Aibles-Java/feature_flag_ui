@@ -53,6 +53,11 @@ export interface SaveFlagStateInput {
    * it ignores unknown fields until a BE story records it.
    */
   prodAcknowledged?: boolean
+  /**
+   * `version` of the state the form was loaded from (or last reloaded after a 409). Sent on every
+   * write so the server can reject a stale one (ADR-07, S-2.16).
+   */
+  version?: number | null
 }
 
 /** Body of `PUT /flags/{flagId}/environments/{envId}` (BE `UpdateFlagStateRequest`). */
@@ -62,18 +67,21 @@ export interface UpdateFlagStateBody {
   clearValue?: boolean
   rolloutPercent: number
   prodAcknowledged?: boolean
+  version?: number
 }
 
 /**
  * The ONE place a flag-state write is built and sent (S-0.1 semantics, F7): always the full
- * state, `clearValue` only to clear (the server rejects `clearValue` together with `value`).
- * S-2.16 adds `version` + 409 handling here and nowhere else.
+ * state, `clearValue` only to clear (the server rejects `clearValue` together with `value`), and
+ * the loaded `version` (S-2.16). 409 handling is shared with the quick toggle: see
+ * `withConflictReload` in `stateConflict.ts`.
  */
 export function buildUpdateBody(input: SaveFlagStateInput): UpdateFlagStateBody {
   const body: UpdateFlagStateBody = { enabled: input.enabled, rolloutPercent: input.rolloutPercent }
   if (input.clearValue) body.clearValue = true
   else if (input.value != null) body.value = input.value
   if (input.prodAcknowledged) body.prodAcknowledged = true
+  if (input.version != null) body.version = input.version
   return body
 }
 

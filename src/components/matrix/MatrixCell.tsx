@@ -1,13 +1,15 @@
-import { useRef, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Lock, Minus } from 'lucide-react'
-import { cellQueryKey, fetchCellState } from '@/api/flagMatrix'
+import { cellQueryKey, fetchCellState, invalidateStateQueries, type CellState } from '@/api/flagMatrix'
+import { isStateConflict, withConflictReload, type StateConflictError } from '@/api/stateConflict'
 import { toggleFlagEnabled } from '@/api/flagToggle'
 import type { Environment } from '@/api/environments'
-import type { FeatureFlag } from '@/api/flags'
+import type { FeatureFlag, FlagState } from '@/api/flags'
 import { STATE_STALE_TIME_MS } from '@/config/matrixConfig'
 import ErrorDialog from '@/components/ErrorDialog'
+import StateConflictDialog from '@/components/flags/StateConflictDialog'
 import { cn } from '@/lib/utils'
 import { canQuickToggle, describeCell, shortValue } from './cellFormat'
 
@@ -19,9 +21,15 @@ interface Props {
   /** This env is the `?env=` focus column (detail mode + limited quick toggle). */
   focused: boolean
   detailHref?: (flag: FeatureFlag, envId: string) => string
+  /**
+   * States of this flag from the one-request matrix (S-2.15), keyed by env id. Present = no query
+   * of our own: a missing env means "not configured". Absent = phase 1 per-cell fetch.
+   */
+  rowStates?: Map<string, FlagState>
 }
 
 export default function MatrixCell(props: Readonly<Props>) {
+  if (props.rowStates) return <CellView {...props} state={props.rowStates.get(props.env.id) ?? null} />
   // Off-screen rows do not mount the query observer at all: an unmounted observer aborts its
   // queued request (see fetchCellState signal), so scrolled-away rows stop consuming D-20 slots.
   // Already-fetched data stays in the query cache and reappears instantly on scroll-back.
@@ -29,7 +37,8 @@ export default function MatrixCell(props: Readonly<Props>) {
   return <ActiveCell {...props} />
 }
 
-function ActiveCell({ flag, env, focused, detailHref }: Readonly<Props>) {
+function ActiveCell(props: Readonly<Props>) {
+  const { flag, env } = props
   const { data: state, isPending, isError, refetch } = useQuery({
     queryKey: cellQueryKey(flag.id, env.id),
     queryFn: ({ signal }) => fetchCellState(flag.id, env.id, signal),
@@ -49,6 +58,10 @@ function ActiveCell({ flag, env, focused, detailHref }: Readonly<Props>) {
       </span>
     )
   }
+  return <CellView {...props} state={state} />
+}
+
+function CellView({ flag, env, focused, detailHref, state }: Readonly<Props & { state: CellState }>) {
   if (state === null) {
     // F11: a missing state is normal, not an error - and the matrix never creates one (ADR-03).
     return <span role="img" aria-label={describeCell(flag.name, env.name, null)} className="text-xs text-muted-foreground">Not configured</span>
@@ -77,7 +90,7 @@ function ActiveCell({ flag, env, focused, detailHref }: Readonly<Props>) {
     <div className="flex flex-col items-start gap-1.5">
       <div className="flex items-center gap-2">
         {chip}
-        {canQuickToggle(flag, env) && <QuickToggle flag={flag} env={env} enabled={state.enabled} />}
+        {canQuickToggle(flag, env) && <QuickToggle flag={flag} env={env} state={state} />}
       </div>
       {state.value != null && state.value !== '' && (
         <span className="max-w-full break-all font-mono text-xs text-foreground">{state.value}</span>
@@ -109,14 +122,22 @@ function ProdNotice({ flag, env, href }: Readonly<{ flag: FeatureFlag; env: Envi
   )
 }
 
-function QuickToggle({ flag, env, enabled }: Readonly<{ flag: FeatureFlag; env: Environment; enabled: boolean }>) {
+function QuickToggle({ flag, env, state }: Readonly<{ flag: FeatureFlag; env: Environment; state: FlagState }>) {
   const qc = useQueryClient()
   const inFlight = useRef(false)
+  const [conflict, setConflict] = useState<StateConflictError | null>(null)
+  const enabled = state.enabled
   const toggle = useMutation({
-    mutationFn: (next: boolean) => toggleFlagEnabled(flag.id, env.id, next),
+    // Sends the version of the state shown in this cell; a stale one is a 409 (S-2.16, ADR-07).
+    mutationFn: (next: boolean) => withConflictReload(flag.id, env.id, () => toggleFlagEnabled(flag.id, env.id, next, state)),
+    onError: (e) => {
+      if (isStateConflict(e)) setConflict(e)
+    },
+    // Success: matrix/states/history/state caches refresh. Conflict or failure: the same refresh
+    // re-reads the row, so the cell shows the server's value (the switch never keeps a lost toggle).
     onSettled: () => {
       inFlight.current = false
-      return qc.invalidateQueries({ queryKey: cellQueryKey(flag.id, env.id) })
+      return invalidateStateQueries(qc, flag, env.id)
     },
   })
   // While the write is in flight show the requested value; on failure `isPending` drops and the
@@ -142,7 +163,16 @@ function QuickToggle({ flag, env, enabled }: Readonly<{ flag: FeatureFlag; env: 
       >
         <span className="h-4 w-4 rounded-full bg-background shadow" aria-hidden="true" />
       </button>
-      <ErrorDialog error={toggle.error} onClose={() => toggle.reset()} />
+      <ErrorDialog error={isStateConflict(toggle.error) ? null : toggle.error} onClose={() => toggle.reset()} />
+      <StateConflictDialog
+        open={conflict !== null}
+        subject={`${flag.name} in ${env.name}`}
+        latest={conflict?.latest ?? null}
+        onClose={() => {
+          setConflict(null)
+          toggle.reset()
+        }}
+      />
     </>
   )
 }

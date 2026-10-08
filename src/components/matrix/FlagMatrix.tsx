@@ -1,8 +1,8 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Lock } from 'lucide-react'
-import { sortEnvironments } from '@/api/flagMatrix'
+import { sortEnvironments, type MatrixIndex } from '@/api/flagMatrix'
 import type { Environment } from '@/api/environments'
-import type { FeatureFlag } from '@/api/flags'
+import type { FeatureFlag, FlagState } from '@/api/flags'
 import { cn } from '@/lib/utils'
 import MatrixCell from './MatrixCell'
 import { useInView } from './useInView'
@@ -15,6 +15,12 @@ interface Props {
   renderRowHeader: (flag: FeatureFlag) => ReactNode
   renderActions: (flag: FeatureFlag) => ReactNode
   detailHref?: (flag: FeatureFlag, envId: string) => string
+  /**
+   * Phase 2 data (S-2.15): states of every flag on this page from ONE request. A flag present here
+   * never triggers per-cell requests; a flag absent (or no index at all = phase 1 fallback) uses
+   * the lazy, D-20-limited per-cell path.
+   */
+  matrixStates?: MatrixIndex
 }
 
 const ENV_COL = 'minmax(120px,1fr)'
@@ -25,7 +31,7 @@ const ENV_COL_FOCUS = 'minmax(260px,2fr)'
  * ARIA grid: arrow keys / Home / End / PageUp / PageDown move between cells (roving tabindex).
  * Server state is fetched per visible row and per cell through the shared D-20 limiter.
  */
-export default function FlagMatrix({ flags, environments, focusEnvId, renderRowHeader, renderActions, detailHref }: Readonly<Props>) {
+export default function FlagMatrix({ flags, environments, focusEnvId, renderRowHeader, renderActions, detailHref, matrixStates }: Readonly<Props>) {
   const envs = sortEnvironments(environments)
   const nCols = envs.length + 2 // flag | envs... | actions
   const template = `minmax(220px,2fr) ${envs.map((e) => (e.id === focusEnvId ? ENV_COL_FOCUS : ENV_COL)).join(' ')} 90px`.replace('  ', ' ')
@@ -98,7 +104,7 @@ export default function FlagMatrix({ flags, environments, focusEnvId, renderRowH
       </div>
       <div className="divide-y divide-muted">
         {flags.map((f, ri) => (
-          <MatrixRow key={f.id} flag={f} rowIndex={ri + 1} envs={envs} focusEnvId={focusEnvId} template={template} cellProps={cellProps} detailHref={detailHref} renderRowHeader={renderRowHeader} renderActions={renderActions} nCols={nCols} />
+          <MatrixRow key={f.id} flag={f} rowIndex={ri + 1} envs={envs} focusEnvId={focusEnvId} template={template} cellProps={cellProps} detailHref={detailHref} renderRowHeader={renderRowHeader} renderActions={renderActions} nCols={nCols} rowStates={matrixStates?.get(f.id)} />
         ))}
       </div>
     </div>
@@ -116,9 +122,10 @@ interface RowProps {
   detailHref?: Props['detailHref']
   renderRowHeader: Props['renderRowHeader']
   renderActions: Props['renderActions']
+  rowStates?: Map<string, FlagState>
 }
 
-function MatrixRow({ flag, rowIndex, envs, focusEnvId, template, nCols, cellProps, detailHref, renderRowHeader, renderActions }: Readonly<RowProps>) {
+function MatrixRow({ flag, rowIndex, envs, focusEnvId, template, nCols, cellProps, detailHref, renderRowHeader, renderActions, rowStates }: Readonly<RowProps>) {
   const ref = useRef<HTMLDivElement>(null)
   const seen = useInView(ref)
   return (
@@ -127,7 +134,7 @@ function MatrixRow({ flag, rowIndex, envs, focusEnvId, template, nCols, cellProp
       <div role="rowheader" {...cellProps(rowIndex, 0)} className="sticky left-0 min-w-0 bg-card px-5 py-4">{renderRowHeader(flag)}</div>
       {envs.map((e, i) => (
         <div key={e.id} role="gridcell" {...cellProps(rowIndex, i + 1)} className={cn('px-3 py-4', e.id === focusEnvId && 'bg-brand-soft/40')}>
-          <MatrixCell flag={flag} env={e} active={seen} focused={e.id === focusEnvId} detailHref={detailHref} />
+          <MatrixCell flag={flag} env={e} active={seen} rowStates={rowStates} focused={e.id === focusEnvId} detailHref={detailHref} />
         </div>
       ))}
       <div role="gridcell" {...cellProps(rowIndex, nCols - 1)} className="px-3 py-4">{renderActions(flag)}</div>

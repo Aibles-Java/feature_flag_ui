@@ -12,3 +12,9 @@ export const STATE_STALE_TIME_MS = 30_000
 
 /** Chars of `value` shown in a chip before truncation (full value stays in the accessible name). */
 export const CHIP_VALUE_MAX_CHARS = 12
+
+/** 429 without a usable `Retry-After` (BE always sends one; D-12 is 60 req/min, so a minute is safe). */
+export const RETRY_AFTER_DEFAULT_S = 60
+
+/** Upper bound for an honoured `Retry-After`, so a bogus header cannot park the page indefinitely. */
+export const RETRY_AFTER_MAX_S = 120

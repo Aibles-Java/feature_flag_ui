@@ -44,7 +44,7 @@ describe('no raw Tailwind palette classes in migrated code', () => {
   const migrated = Object.keys(sources).filter(
     (f) => (f.startsWith('/src/components/matrix/') || f.startsWith('/src/api/flagMatrix') ||
       f.startsWith('/src/components/flags/') || f === '/src/pages/flags/FlagDetailPage.tsx' ||
-      f === '/src/api/flagEnvironments.ts') && !/\.test\.tsx?$/.test(f),
+      f === '/src/api/flagEnvironments.ts' || f === '/src/api/stateConflict.ts' || f === '/src/hooks/useFlagMatrix.ts') && !/\.test\.tsx?$/.test(f),
   )
   it('matrix components are palette-free', () => {
     expect(migrated.length).toBeGreaterThan(3)

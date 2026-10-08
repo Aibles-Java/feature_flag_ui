@@ -20,6 +20,11 @@ export interface FlagState {
   enabled: boolean
   value?: string
   rolloutPercent: number
+  /**
+   * Optimistic-lock version (BE `FlagStateResponse.version`, ADR-07). Echo it on every write; the
+   * server answers 409 when it no longer matches. Absent/null only against a pre-S-2.2 backend.
+   */
+  version?: number | null
   lastEvaluatedAt?: string | null
 }
 
@@ -62,6 +67,6 @@ export const getFlagState = (flagId: string, envId: string) =>
 export const updateFlagState = (
   flagId: string,
   envId: string,
-  data: { enabled: boolean; value?: string; rolloutPercent?: number },
+  data: { enabled: boolean; value?: string; rolloutPercent?: number; version?: number },
 ) =>
   api.put<FlagState>(`/flags/${flagId}/environments/${envId}`, data).then((r) => r.data)
