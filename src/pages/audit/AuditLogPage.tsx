@@ -39,7 +39,7 @@ function StateDiff({ entry }: Readonly<{ entry: AuditLogEntry }>) {
     <div>
       <button type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8]"
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-brand-strong"
       >
         <ChevronDown className={cn('w-3 h-3 transition-transform', !open && '-rotate-90')} />
         {open ? 'Hide' : 'Show'} snapshot

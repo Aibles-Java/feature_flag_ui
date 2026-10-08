@@ -45,10 +45,10 @@ const ENV_CONFIG: Record<EnvType, {
 }
 
 const FALLBACK_CONFIG = {
-  bar: 'bg-[#60A5FA]',
-  iconBg: 'bg-[#EFF6FF]',
-  iconText: 'text-[#2563EB]',
-  badge: 'bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]',
+  bar: 'bg-brand-light',
+  iconBg: 'bg-brand-soft',
+  iconText: 'text-primary',
+  badge: 'bg-brand-soft text-brand-strong border-brand-border',
   label: 'Unknown',
 }
 
@@ -396,7 +396,7 @@ export default function EnvironmentsPage() {
                   type="button"
                   aria-label={`Open ${env.name}`}
                   onClick={() => select(env)}
-                  className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-[#2563EB]"
+                  className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-primary"
                 />
                 {/* Color bar */}
                 <div className={cn('h-1.5 w-full', cfg.bar)} />
@@ -422,14 +422,14 @@ export default function EnvironmentsPage() {
                     <div className="relative z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); setKeysTarget(env) }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-brand-soft transition-colors"
                         title="API keys"
                       >
                         <KeyRound className="w-4 h-4" />
                       </button>
                       <button type="button"
                         onClick={(e) => openEdit(e, env)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-brand-soft transition-colors"
                         title="Edit environment"
                       >
                         <Pencil className="w-4 h-4" />
@@ -446,7 +446,7 @@ export default function EnvironmentsPage() {
 
                   {/* CTA */}
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] bg-[#EFF6FF] px-3 py-1.5 rounded-lg group-hover:bg-[#DBEAFE] transition-colors">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-brand-soft px-3 py-1.5 rounded-lg group-hover:bg-brand-tint group-hover:text-brand-strong transition-colors">
                       View Flags →
                     </span>
                   </div>

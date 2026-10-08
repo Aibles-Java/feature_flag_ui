@@ -52,7 +52,7 @@ export default function ProjectsPage() {
     setDeleteTarget(p)
   }
 
-  const colors = ['from-violet-500 to-purple-700', 'from-blue-500 to-[#1D4ED8]', 'from-emerald-500 to-teal-700', 'from-rose-500 to-pink-700', 'from-amber-500 to-orange-700']
+  const colors = ['from-violet-500 to-purple-700', 'from-blue-500 to-brand-strong', 'from-emerald-500 to-teal-700', 'from-rose-500 to-pink-700', 'from-amber-500 to-orange-700']
 
   return (
     <div>
@@ -81,8 +81,8 @@ export default function ProjectsPage() {
       */}
       {!isLoading && projects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-28 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-          <div className="w-20 h-20 rounded-3xl bg-[#EFF6FF] flex items-center justify-center mb-5">
-            <FolderKanban className="w-9 h-9 text-[#60A5FA]" />
+          <div className="w-20 h-20 rounded-3xl bg-brand-soft flex items-center justify-center mb-5">
+            <FolderKanban className="w-9 h-9 text-brand-light" />
           </div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">No projects yet</h3>
           <p className="text-gray-500 mb-6 text-center max-w-sm">
@@ -97,14 +97,14 @@ export default function ProjectsPage() {
         {projects.map((p, i) => (
           <div
             key={p.id}
-            className="group relative flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-[#93C5FD] hover:shadow-md hover:shadow-[#EFF6FF] transition-all"
+            className="group relative flex items-center gap-5 bg-white border border-gray-200 rounded-2xl p-6 hover:border-brand-mid hover:shadow-md hover:shadow-brand-soft transition-all"
           >
             {/* Stretched button: the card opens the project, the action buttons sit above it. */}
             <button
               type="button"
               aria-label={`Open ${p.name}`}
               onClick={() => select(p)}
-              className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-[#2563EB]"
+              className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-primary"
             />
             <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform`}>
               <FolderKanban className="w-7 h-7 text-white" />
@@ -118,7 +118,7 @@ export default function ProjectsPage() {
             <div className="relative z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
               <button type="button"
                 onClick={(e) => openEdit(e, p)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-brand-soft transition-colors"
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -129,7 +129,7 @@ export default function ProjectsPage() {
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-[#60A5FA] group-hover:translate-x-0.5 transition-all shrink-0" />
+            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-brand-light group-hover:translate-x-0.5 transition-all shrink-0" />
           </div>
         ))}
       </div>

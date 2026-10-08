@@ -64,7 +64,7 @@ function KeyRow({
       )}
     >
       <KeyRound
-        className={cn('w-4 h-4 mt-0.5 shrink-0', apiKey.active ? 'text-[#2563EB]' : 'text-slate-300')}
+        className={cn('w-4 h-4 mt-0.5 shrink-0', apiKey.active ? 'text-primary' : 'text-slate-300')}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
@@ -246,7 +246,7 @@ export default function ApiKeysDialog({
               <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="accent-[#2563EB] w-3.5 h-3.5"
+                  className="accent-primary w-3.5 h-3.5"
                   checked={neverExpires}
                   onChange={(e) => setNeverExpires(e.target.checked)}
                 />
