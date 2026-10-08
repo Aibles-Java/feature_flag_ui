@@ -2,4 +2,5 @@
 // ${VITE_API_URL} is replaced with the container's VITE_API_URL environment variable.
 window.__ENV__ = {
   VITE_API_URL: "${VITE_API_URL}",
+  FLAG_CENTRIC_NAV: "${FLAG_CENTRIC_NAV}",
 };
