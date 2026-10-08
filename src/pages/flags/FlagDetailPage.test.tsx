@@ -1,5 +1,6 @@
 // S-1.7 / S-1.8 / S-1.9: Flag detail page, state editor, PROD guard. Synthetic data only.
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
+import { focusManager } from '@tanstack/react-query'
 import MockAdapter from 'axios-mock-adapter'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -344,20 +345,36 @@ describe('S-1.9 ProdGuardDialog (advisory; server decides)', () => {
     expect(within(guard).getByRole('button', { name: /save to production/i })).toBeEnabled()
   })
 
-  it('a window-focus refetch keeps typed edits and the open guard', async () => {
-    const { user, guard } = await openProdGuard()
-    await user.type(within(guard).getByLabelText(/Type the flag key/), 'checkout')
-    const before = mock.history.get.length
-    window.dispatchEvent(new Event('focus'))
-    document.dispatchEvent(new Event('visibilitychange'))
+  const freshGets = () => mock.history.get.filter((r) => r.url === `/flags/${FLAG_ID}/environments/${ENV_PROD}`).length
+
+  it('window focus does not refetch the editor state (stale data, but the form must not be rebuilt)', async () => {
+    const { guard } = await openProdGuard()
+    expect(freshGets()).toBe(1)
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+    act(() => { focusManager.setFocused(false); focusManager.setFocused(true) })
     await new Promise((r) => setTimeout(r, 50))
-    expect(mock.history.get.filter((r) => r.url?.includes(`/environments/${ENV_PROD}`) && r.url.includes('/flags/')).length).toBe(1)
-    expect(mock.history.get.length).toBeGreaterThanOrEqual(before)
+    expect(freshGets()).toBe(1)
+    expect(within(guard).getByLabelText(/Type the flag key/)).toBeInTheDocument()
+  })
+
+  it('a refetch of the editor state keeps typed edits and the open guard', async () => {
+    const { user, guard, queryClient } = await openProdGuard()
+    await user.type(within(guard).getByLabelText(/Type the flag key/), 'checkout')
+    expect(freshGets()).toBe(1)
+    await act(() => queryClient.refetchQueries({ queryKey: ['flag-state-fresh'] }))
+    expect(freshGets()).toBe(2)
     const still = screen.getByRole('dialog', { name: /confirm change/i })
     expect(within(still).getByLabelText(/Type the flag key/)).toHaveValue('checkout')
     await user.click(within(still).getByRole('button', { name: 'Cancel' }))
     const editor = await screen.findByRole('dialog')
     expect(within(editor).getByLabelText(/^Value/)).toHaveValue('new-prod')
+  })
+
+  it('returns focus to the trigger after the guard closes', async () => {
+    const { user, guard } = await openProdGuard()
+    await user.click(within(guard).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /confirm change/i })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: /review and save/i })).toHaveFocus())
   })
 
   it('guard has no axe violations', async () => {
