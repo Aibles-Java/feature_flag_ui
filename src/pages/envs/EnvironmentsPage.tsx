@@ -446,7 +446,7 @@ export default function EnvironmentsPage() {
 
                   {/* CTA */}
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-brand-soft px-3 py-1.5 rounded-lg group-hover:bg-brand-tint transition-colors">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-brand-soft px-3 py-1.5 rounded-lg group-hover:bg-brand-tint group-hover:text-brand-strong transition-colors">
                       View Flags →
                     </span>
                   </div>

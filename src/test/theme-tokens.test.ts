@@ -36,7 +36,6 @@ function block(selector: string): string {
   const m = new RegExp(`(^|\\n)${selector.replace('.', '\\.')}\\s*\\{([\\s\\S]*?)\\n\\}`).exec(css)
   return m ? m[2] : ''
 }
-console.log(JSON.stringify(css.slice(0,200)), css.length)
 const light = block(':root')
 const dark = block('.dark')
 const themeInline = /@theme inline \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ''
@@ -77,7 +76,9 @@ const PAIRS: string[][] = [
   ['chip-on-foreground', 'chip-on-hover'],
   ['chip-off-foreground', 'chip-off'],
   ['chip-off-foreground', 'chip-off-hover'],
-  ['brand-strong', 'brand-soft', 'brand-mid', 'brand-tint'],
+  ['brand-strong', 'brand-soft'],
+  ['brand-strong', 'brand-tint'], // brand-mid is border-only (no text pair)
+  ['success-text', 'success-soft'],
 ]
 
 describe('AC3: chip contrast >= 4.5:1 (WCAG AA) in both modes', () => {
