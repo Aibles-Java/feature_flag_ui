@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getFlags, getArchivedFlags, createFlag, updateFlag, deleteFlag,
   unarchiveFlag, updateFlagState, getFlagState,
-  type FlagValueType, type FeatureFlag,
+  MAX_FLAGS_PAGE_SIZE, type FlagValueType, type FeatureFlag,
 } from '@/api/flags'
+import { useEnvParam } from '@/hooks/useEnvParam'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,7 +18,7 @@ import ApiError from '@/components/ApiError'
 import {
   Flag, Plus, Search, ToggleLeft, Hash, Type, Braces,
   ToggleRight, Pencil, Archive, ArchiveRestore, ChevronDown, ChevronRight,
-  Loader2,
+  Loader2, ChevronLeft,
 } from 'lucide-react'
 
 // ─── Type config ──────────────────────────────────────────────────────────────
@@ -88,8 +89,14 @@ function dotColour(envId: string | undefined, isEnabled: boolean): string {
   return isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]'
 }
 export default function FlagsPage() {
-  const { projectId, envId } = useParams<{ projectId: string; envId: string }>()
+  const { projectId, envId: legacyEnvId } = useParams<{ projectId: string; envId: string }>()
   const qc = useQueryClient()
+  // Legacy route (kill-switch off): env comes from the path, as before. New route: env comes from
+  // the validated ?env= search param (S-1.2) - never from zustand.
+  const { envId: urlEnvId, environments } = useEnvParam(legacyEnvId ? undefined : projectId)
+  const envId = legacyEnvId ?? urlEnvId
+  const [, setSearchParams] = useSearchParams()
+  const [pageIndex, setPageIndex] = useState(0)
 
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -101,13 +108,17 @@ export default function FlagsPage() {
   const [deleteTarget, setDeleteTarget] = useState<FeatureFlag | null>(null)
   const [showArchived, setShowArchived] = useState(false)
 
-  const { data: flags = [], isLoading } = useQuery({
-    queryKey: ['flags', projectId],
-    queryFn: () => getFlags(projectId!),
+  const { data: flagsPage, isLoading } = useQuery({
+    queryKey: ['flags', projectId, pageIndex],
+    queryFn: () => getFlags(projectId!, pageIndex, MAX_FLAGS_PAGE_SIZE),
     enabled: !!projectId,
+    placeholderData: (prev) => prev,
   })
+  const flags = useMemo(() => flagsPage?.content ?? [], [flagsPage])
+  const totalElements = flagsPage?.totalElements ?? 0
+  const totalPages = Math.max(flagsPage?.totalPages ?? 1, 1)
 
-  const activeFlags = flags.filter((f) => !f.archived)
+  const activeFlags = useMemo(() => flags.filter((f) => !f.archived), [flags])
 
   const flagStateQueries = useQueries({
     queries: envId ? activeFlags.map((f) => ({
@@ -193,7 +204,7 @@ export default function FlagsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Feature Flags</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {activeFlags.length} flag{activeFlags.length !== 1 ? 's' : ''} in this project
+            <span data-testid="flags-total">{totalElements}</span> flag{totalElements !== 1 ? 's' : ''} in this project
             {!envId && (
               <span className="ml-2 inline-flex items-center gap-1 text-amber-600 bg-amber-50 border border-amber-100 text-[11px] font-medium px-2 py-0.5 rounded-full">
                 <ToggleLeft className="w-3 h-3" />
@@ -212,7 +223,7 @@ export default function FlagsPage() {
       {activeFlags.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Total flags', value: activeFlags.length,              color: 'text-[#0F172A]',   accent: 'border-l-[#2563EB]',   icon: <Flag className="w-5 h-5 text-[#2563EB]" />,           bg: 'bg-[#EFF6FF]'  },
+            { label: 'Total flags', value: totalElements,              color: 'text-[#0F172A]',   accent: 'border-l-[#2563EB]',   icon: <Flag className="w-5 h-5 text-[#2563EB]" />,           bg: 'bg-[#EFF6FF]'  },
             { label: 'Enabled',     value: enabledCount,                    color: 'text-[#16A34A]',   accent: 'border-l-[#10B981]',   icon: <ToggleRight className="w-5 h-5 text-[#10B981]" />,     bg: 'bg-[#ECFDF5]'  },
             { label: 'Archived',    value: archivedFlags.length,            color: 'text-[#64748B]',   accent: 'border-l-[#E2E8F0]',   icon: <Archive className="w-5 h-5 text-[#64748B]" />,         bg: 'bg-[#F8FAFC]'  },
           ].map((s) => (
@@ -247,6 +258,31 @@ export default function FlagsPage() {
             {filtered.length} of {activeFlags.length} shown
           </p>
         </div>
+
+        {/* Env filter (flag-centric route only): replaces the sidebar env switcher */}
+        {!legacyEnvId && environments.length > 0 && (
+          <div className="px-5 py-3 border-b border-[#F1F5F9] flex items-center gap-2">
+            <label htmlFor="env-filter" className="text-xs font-semibold text-gray-500">Environment</label>
+            <select
+              id="env-filter"
+              value={envId ?? ''}
+              onChange={(e) =>
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev)
+                  if (e.target.value) next.set('env', e.target.value)
+                  else next.delete('env')
+                  return next
+                })
+              }
+              className="h-8 rounded-md border border-gray-200 bg-white px-2 text-sm"
+            >
+              <option value="">All environments</option>
+              {environments.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Loading skeleton */}
         {isLoading && (
@@ -380,6 +416,23 @@ export default function FlagsPage() {
               })}
             </div>
           </>
+        )}
+
+        {/* Pagination (D-18: page controls, no "load more") */}
+        {totalPages > 1 && (
+          <nav aria-label="Flags pagination" className="flex items-center justify-between px-5 py-3 border-t border-[#F1F5F9]">
+            <p className="text-xs text-gray-500">Page {pageIndex + 1} of {totalPages}</p>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" aria-label="Previous page"
+                disabled={pageIndex === 0} onClick={() => setPageIndex((p) => Math.max(p - 1, 0))}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button type="button" variant="outline" size="sm" aria-label="Next page"
+                disabled={pageIndex >= totalPages - 1} onClick={() => setPageIndex((p) => p + 1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </nav>
         )}
       </div>
 

@@ -10,7 +10,7 @@ import {
   type EnvironmentSecret,
 } from '@/api/environments'
 import { ENV_TYPES, type EnvType } from '@/api/abac'
-import { useNavStore } from '@/stores/navStore'
+import { isFlagCentricNavEnabled } from '@/config/runtimeFlags'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -254,7 +254,6 @@ export default function EnvironmentsPage() {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const setCurrentEnv = useNavStore((s) => s.setCurrentEnv)
 
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -311,8 +310,11 @@ export default function EnvironmentsPage() {
   })
 
   const select = (env: Environment) => {
-    setCurrentEnv(env)
-    navigate(`/orgs/${orgId}/projects/${projectId}/envs/${env.id}/flags`)
+    navigate(
+      isFlagCentricNavEnabled()
+        ? `/orgs/${orgId}/projects/${projectId}/flags?env=${env.id}`
+        : `/orgs/${orgId}/projects/${projectId}/envs/${env.id}/flags`,
+    )
   }
 
   const openEdit = (e: React.MouseEvent, env: Environment) => {
