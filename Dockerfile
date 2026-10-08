@@ -17,7 +17,14 @@ FROM nginx:1.27-alpine AS runtime
 # publish job's Trivy HIGH/CRITICAL gate passes (nginx:alpine lags upstream
 # security fixes for openssl/libxml2/libpng/etc.). gettext provides `envsubst`,
 # used to inject runtime config.
-RUN apk upgrade --no-cache && apk add --no-cache gettext
+#
+# The explicit openssl floor is load-bearing: CI builds with cache-from/to: gha,
+# and BuildKit keys this RUN by its instruction text, so a plain `apk upgrade`
+# layer stays cached from an earlier build and never re-pulls a since-published
+# fix (libcrypto3/libssl3 3.3.7-r2: CVE-2026-75804, CVE-2026-84782). Naming the
+# fixed package forces a cache miss and fails the build loudly on regression.
+# Bump the floor when a newer base-package CVE needs the same treatment.
+RUN apk upgrade --no-cache && apk add --no-cache gettext "libcrypto3>=3.3.7-r2" "libssl3>=3.3.7-r2"
 
 # Nginx site config (SPA fallback, gzip, health check, caching)
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
