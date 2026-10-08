@@ -41,18 +41,17 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left — brand panel */}
-      <div className="hidden lg:flex w-[46%] flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' }}>
+      <div className="hidden lg:flex w-[46%] flex-col justify-between p-12 relative overflow-hidden bg-linear-135 from-primary to-brand-strong">
 
         <div className="absolute inset-0 opacity-[0.06]"
           style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
 
         {/* Logo */}
         <div className="relative flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15">
             <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
               <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M40 22 L50 22 L50 32" className="stroke-success" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <span className="text-white font-bold text-xl">Onward</span>
@@ -86,21 +85,21 @@ export default function RegisterPage() {
       </div>
 
       {/* Right — form */}
-      <div className="flex-1 flex items-center justify-center bg-[#F8FAFC] p-8">
+      <div className="flex-1 flex items-center justify-center bg-background p-8">
         <div className="w-full max-w-[380px]">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#2563EB' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary">
               <svg width="18" height="18" viewBox="0 0 64 64" fill="none">
                 <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M40 22 L50 22 L50 32" className="stroke-success" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <span className="font-bold text-gray-900 text-lg">Onward</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-[#0F172A] mb-1">Create your account</h1>
-          <p className="text-[#64748B] text-sm mb-8">Get started for free — no credit card needed.</p>
+          <h1 className="text-3xl font-bold text-foreground mb-1">Create your account</h1>
+          <p className="text-muted-foreground text-sm mb-8">Get started for free — no credit card needed.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -151,7 +150,7 @@ export default function RegisterPage() {
 
           <p className="text-sm text-center text-gray-500 mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-[#2563EB] font-semibold hover:underline">
+            <Link to="/login" className="text-primary font-semibold hover:underline">
               Sign in
             </Link>
           </p>

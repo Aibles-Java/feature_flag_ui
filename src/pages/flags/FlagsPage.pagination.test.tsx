@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import MockAdapter from 'axios-mock-adapter'
-import { Link, Route, Routes } from 'react-router-dom'
+import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import api from '@/api/axios'
 import { renderWithProviders } from '@/test/renderWithProviders'
@@ -27,10 +27,16 @@ beforeEach(() => {
 })
 afterEach(() => mock.restore())
 
+function Loc() {
+  const l = useLocation()
+  return <p data-testid="search">{l.search}</p>
+}
+
 const mount = (search = '') =>
   renderWithProviders(
     <>
       <Link to={`/orgs/${ORG}/projects/${OTHER}/flags`}>switch project</Link>
+      <Loc />
       <Routes>
         <Route path="/orgs/:orgId/projects/:projectId/flags" element={<FlagsPage />} />
       </Routes>
@@ -114,5 +120,30 @@ describe('FlagsPage pagination (S-1.5, D-18)', () => {
     await screen.findByText('Synthetic flag 1')
     expect(screen.getByText('Enabled (this page)')).toBeInTheDocument()
     expect(screen.getByText('100 of 100 on this page')).toBeInTheDocument()
+  })
+
+  it.each(['abc', '-5', '0', '1.5e3x', ''])('invalid ?page=%j falls back to page 1', async (bad) => {
+    mount(`?page=${bad}`)
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
+    expect(flagRequests()[0].params.page).toBe(0)
+  })
+
+  it('huge ?page= never reaches the API as-is and lands on the real last page', async () => {
+    mount('?page=100000000000000000000')
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
+    for (const r of flagRequests()) expect(r.params.page).toBeLessThanOrEqual(100000)
+  })
+
+  it('?env= is preserved across page changes', async () => {
+    const env = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const { user } = mount(`?env=${env}`)
+    await screen.findByText('Page 1 of 2')
+    await user.click(screen.getByRole('button', { name: 'Next page' }))
+    await screen.findByText('Page 2 of 2')
+    expect(screen.getByTestId('search')).toHaveTextContent(`env=${env}`)
+    expect(screen.getByTestId('search')).toHaveTextContent('page=2')
+    await user.click(screen.getByRole('button', { name: 'Previous page' }))
+    await screen.findByText('Page 1 of 2')
+    expect(screen.getByTestId('search').textContent).toBe(`?env=${env}`)
   })
 })

@@ -65,14 +65,14 @@ function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string 
         className={cn(
           'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all select-none',
           enabled
-            ? 'bg-[#10B981] text-white hover:bg-[#059669] shadow-sm shadow-[#10B981]/25'
-            : 'bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]',
+            ? 'bg-chip-on text-chip-on-foreground hover:bg-chip-on-hover shadow-sm shadow-success/25'
+            : 'bg-chip-off text-chip-off-foreground hover:bg-chip-off-hover',
           pending && 'opacity-60 cursor-not-allowed',
         )}
       >
         {pending
           ? <Loader2 className="w-3 h-3 animate-spin" />
-          : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-[#94A3B8]')} />}
+          : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-faint')} />}
         {enabled ? 'Enabled' : 'Disabled'}
       </button>
       <ErrorDialog error={toggle.error} onClose={() => toggle.reset()} />
@@ -85,9 +85,12 @@ function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string 
 
 /** Status dot: blue with no environment selected, else green when on and grey when off. */
 function dotColour(envId: string | undefined, isEnabled: boolean): string {
-  if (!envId) return 'bg-[#2563EB]'
-  return isEnabled ? 'bg-[#10B981]' : 'bg-[#CBD5E1]'
+  if (!envId) return 'bg-primary'
+  return isEnabled ? 'bg-success' : 'bg-faint-strong'
 }
+/** Upper bound for ?page= so absurd values never reach the API; the clamp effect then lands on the real last page. */
+const MAX_PAGE_PARAM = 100000
+
 export default function FlagsPage() {
   const { projectId, envId: legacyEnvId } = useParams<{ projectId: string; envId: string }>()
   const qc = useQueryClient()
@@ -98,7 +101,7 @@ export default function FlagsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   // Page lives in the URL (?page=, 1-based) so reload and Back preserve it. Other params (?env=) are kept.
   const rawPage = Number.parseInt(searchParams.get('page') ?? '1', 10)
-  const pageIndex = Number.isFinite(rawPage) && rawPage > 1 ? rawPage - 1 : 0
+  const pageIndex = Number.isFinite(rawPage) && rawPage > 1 ? Math.min(rawPage, MAX_PAGE_PARAM) - 1 : 0
   const setPageIndex = (idx: number, replace = false) =>
     setSearchParams(
       (prev) => {
@@ -243,11 +246,11 @@ export default function FlagsPage() {
       {activeFlags.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Total flags', value: totalElements,              color: 'text-[#0F172A]',   accent: 'border-l-[#2563EB]',   icon: <Flag className="w-5 h-5 text-[#2563EB]" />,           bg: 'bg-[#EFF6FF]'  },
-            { label: 'Enabled (this page)',     value: enabledCount,                    color: 'text-[#16A34A]',   accent: 'border-l-[#10B981]',   icon: <ToggleRight className="w-5 h-5 text-[#10B981]" />,     bg: 'bg-[#ECFDF5]'  },
-            { label: 'Archived',    value: archivedFlags.length,            color: 'text-[#64748B]',   accent: 'border-l-[#E2E8F0]',   icon: <Archive className="w-5 h-5 text-[#64748B]" />,         bg: 'bg-[#F8FAFC]'  },
+            { label: 'Total flags', value: totalElements,              color: 'text-foreground',   accent: 'border-l-primary',   icon: <Flag className="w-5 h-5 text-primary" />,           bg: 'bg-brand-soft'  },
+            { label: 'Enabled (this page)', value: enabledCount,                    color: 'text-success-text',   accent: 'border-l-success',   icon: <ToggleRight className="w-5 h-5 text-success" />,     bg: 'bg-success-soft'  },
+            { label: 'Archived',    value: archivedFlags.length,            color: 'text-muted-foreground',   accent: 'border-l-border',   icon: <Archive className="w-5 h-5 text-muted-foreground" />,         bg: 'bg-background'  },
           ].map((s) => (
-            <div key={s.label} className={cn('rounded-xl border border-[#E2E8F0] border-l-4 px-5 py-5 flex items-center gap-4 shadow-sm bg-white', s.accent)}>
+            <div key={s.label} className={cn('rounded-xl border border-border border-l-4 px-5 py-5 flex items-center gap-4 shadow-sm bg-white', s.accent)}>
               <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', s.bg)}>
                 {s.icon}
               </div>
@@ -261,10 +264,10 @@ export default function FlagsPage() {
       )}
 
       {/* ── Table ── */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
 
         {/* Toolbar */}
-        <div className="px-5 py-4 border-b border-[#F1F5F9] flex items-center gap-3">
+        <div className="px-5 py-4 border-b border-muted flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <Input
@@ -281,7 +284,7 @@ export default function FlagsPage() {
 
         {/* Env filter (flag-centric route only): replaces the sidebar env switcher */}
         {!legacyEnvId && environments.length > 0 && (
-          <div className="px-5 py-3 border-b border-[#F1F5F9] flex items-center gap-2">
+          <div className="px-5 py-3 border-b border-muted flex items-center gap-2">
             <label htmlFor="env-filter" className="text-xs font-semibold text-gray-500">Environment</label>
             <select
               id="env-filter"
@@ -324,8 +327,8 @@ export default function FlagsPage() {
         {/* Empty state */}
         {!isLoading && activeFlags.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 px-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#EFF6FF] flex items-center justify-center mb-4">
-              <Flag className="w-7 h-7 text-[#2563EB]" />
+            <div className="w-16 h-16 rounded-2xl bg-brand-soft flex items-center justify-center mb-4">
+              <Flag className="w-7 h-7 text-primary" />
             </div>
             <p className="text-base font-semibold text-gray-800 mb-1">No feature flags yet</p>
             <p className="text-sm text-gray-400 mb-6 text-center max-w-xs">
@@ -343,7 +346,7 @@ export default function FlagsPage() {
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <Search className="w-7 h-7 text-gray-300 mb-3" />
             <p className="text-sm font-medium text-gray-700">No flags match "{search}"</p>
-            <button type="button" onClick={() => setSearch('')} className="text-xs text-[#2563EB] mt-1 hover:underline">
+            <button type="button" onClick={() => setSearch('')} className="text-xs text-primary mt-1 hover:underline">
               Clear search
             </button>
           </div>
@@ -353,7 +356,7 @@ export default function FlagsPage() {
         {!isLoading && filtered.length > 0 && (
           <>
             <div className={cn(
-              'grid items-center px-5 py-3 bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-bold text-[#64748B] uppercase tracking-wider',
+              'grid items-center px-5 py-3 bg-background border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider',
               envId ? colsWithEnv : colsNoEnv
             )}>
               <div>Name</div>
@@ -363,7 +366,7 @@ export default function FlagsPage() {
               {envId && <div className="text-right">Status</div>}
             </div>
 
-            <div className="divide-y divide-[#F1F5F9]">
+            <div className="divide-y divide-muted">
               {filtered.map((flag) => {
                 const tc = typeConfig[flag.valueType]
                 const isEnabled = enabledById[flag.id] ?? false
@@ -371,7 +374,7 @@ export default function FlagsPage() {
                   <div
                     key={flag.id}
                     className={cn(
-                      'grid items-center px-5 py-4 hover:bg-[#F8FAFC] transition-colors',
+                      'grid items-center px-5 py-4 hover:bg-background transition-colors',
                       envId ? colsWithEnv : colsNoEnv
                     )}
                   >
@@ -411,7 +414,7 @@ export default function FlagsPage() {
                     <div className="flex items-center gap-1">
                       <button type="button"
                         onClick={() => openEdit(flag)}
-                        className="p-1.5 rounded hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#2563EB] transition-colors"
+                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -440,7 +443,7 @@ export default function FlagsPage() {
 
         {/* Pagination (D-18: page controls, no "load more") */}
         {(totalPages > 1 || pageIndex > 0) && (
-          <nav aria-label="Flags pagination" className="flex items-center justify-between px-5 py-3 border-t border-[#F1F5F9]">
+          <nav aria-label="Flags pagination" className="flex items-center justify-between px-5 py-3 border-t border-muted">
             <p className="text-xs text-gray-500">Page {pageIndex + 1} of {totalPages}</p>
             <div className="flex items-center gap-2">
               <Button type="button" variant="outline" size="sm" aria-label="Previous page"
@@ -457,15 +460,15 @@ export default function FlagsPage() {
       </div>
 
       {/* ── Archived ── */}
-      <div className="rounded-xl border border-dashed border-[#E2E8F0] bg-white overflow-hidden">
+      <div className="rounded-xl border border-dashed border-border bg-white overflow-hidden">
         <button type="button"
-          className="w-full flex items-center gap-2 px-5 py-3 text-sm font-medium text-[#64748B] hover:bg-[#F8FAFC] transition-colors"
+          className="w-full flex items-center gap-2 px-5 py-3 text-sm font-medium text-muted-foreground hover:bg-background transition-colors"
           onClick={() => setShowArchived((v) => !v)}
         >
           {showArchived ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           Archived flags
           {archivedFlags.length > 0 && (
-            <span className="ml-1 text-xs bg-[#F1F5F9] text-[#64748B] px-2 py-0.5 rounded-full">
+            <span className="ml-1 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
               {archivedFlags.length}
             </span>
           )}
@@ -493,7 +496,7 @@ export default function FlagsPage() {
                     <button type="button"
                       onClick={() => unarchiveMutation.mutate(flag.id)}
                       disabled={unarchiveMutation.isPending}
-                      className="flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-medium px-2.5 py-1.5 rounded-lg border border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors"
+                      className="flex items-center gap-1.5 text-xs text-primary hover:text-brand-strong font-medium px-2.5 py-1.5 rounded-lg border border-brand-border hover:bg-brand-soft transition-colors"
                     >
                       <ArchiveRestore className="w-3.5 h-3.5" />
                       Restore

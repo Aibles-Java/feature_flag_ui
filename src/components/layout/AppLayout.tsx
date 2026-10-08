@@ -80,17 +80,17 @@ export default function AppLayout() {
     : []
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
+    <div className="flex h-screen overflow-hidden bg-background">
 
       {/* ── DARK SIDEBAR ── */}
-      <aside className="w-64 shrink-0 flex flex-col" style={{ background: '#0F172A' }}>
+      <aside className="w-64 shrink-0 flex flex-col bg-sidebar">
 
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-white/[0.06]">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#2563EB' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary">
             <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
               <path d="M14 44 L28 34 L38 40 L50 22" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M40 22 L50 22 L50 32" stroke="#10B981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M40 22 L50 22 L50 32" className="stroke-success" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <div>
@@ -107,7 +107,7 @@ export default function AppLayout() {
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {currentOrg ? (
                   <>
-                    <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: '#2563EB' }}>
+                    <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0 bg-primary">
                       {currentOrg.name.charAt(0).toUpperCase()}
                     </div>
                     <span className="truncate text-white/90 font-medium">{currentOrg.name}</span>
@@ -122,7 +122,7 @@ export default function AppLayout() {
               {orgs.map((o) => (
                 <SelectItem key={o.id} value={o.id}>
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-[#EFF6FF] flex items-center justify-center text-[10px] font-bold text-[#2563EB]">
+                    <div className="w-5 h-5 rounded bg-brand-soft flex items-center justify-center text-[10px] font-bold text-primary">
                       {o.name.charAt(0).toUpperCase()}
                     </div>
                     {o.name}
@@ -154,13 +154,13 @@ export default function AppLayout() {
                   className={cn(
                     'w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg text-sm transition-all font-medium',
                     isActive
-                      ? 'bg-[#2563EB]/[0.18] text-white border border-[#2563EB]/[0.35]'
+                      ? 'bg-primary/[0.18] text-white border border-primary/[0.35]'
                       : 'text-white/50 hover:bg-white/5 hover:text-white/80 border border-transparent'
                   )}
                 >
-                  <FolderKanban className={cn('w-4 h-4 shrink-0', isActive ? 'text-[#60A5FA]' : 'text-white/30')} />
+                  <FolderKanban className={cn('w-4 h-4 shrink-0', isActive ? 'text-brand-light' : 'text-white/30')} />
                   <span className="truncate flex-1">{p.name}</span>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#60A5FA] shrink-0" />}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-brand-light shrink-0" />}
                 </button>
 
                 {isActive && (
@@ -235,11 +235,11 @@ export default function AppLayout() {
                     className={cn(
                       'w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg text-sm transition-all font-medium border',
                       active
-                        ? 'bg-[#2563EB]/[0.18] text-white border-[#2563EB]/[0.35]'
+                        ? 'bg-primary/[0.18] text-white border-primary/[0.35]'
                         : 'text-white/50 hover:bg-white/5 hover:text-white/80 border-transparent'
                     )}
                   >
-                    <Icon className={cn('w-4 h-4 shrink-0', active ? 'text-[#60A5FA]' : 'text-white/30')} />
+                    <Icon className={cn('w-4 h-4 shrink-0', active ? 'text-brand-light' : 'text-white/30')} />
                     <span className="truncate flex-1">{label}</span>
                   </button>
                 )
@@ -251,7 +251,7 @@ export default function AppLayout() {
         {/* User footer */}
         <div className="border-t border-white/5 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: '#2563EB' }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 bg-primary">
               {avatarLetter}
             </div>
             <div className="flex-1 min-w-0">
@@ -273,7 +273,7 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Top breadcrumb bar */}
-        <header className="h-14 bg-white border-b border-[#E2E8F0] flex items-center px-8 gap-2 shrink-0 shadow-sm">
+        <header className="h-14 bg-white border-b border-border flex items-center px-8 gap-2 shrink-0 shadow-sm">
           <button type="button" onClick={() => navigate('/orgs')} className="text-sm text-gray-400 hover:text-gray-700 transition-colors font-medium">
             {currentOrg?.name ?? 'Organizations'}
           </button>
@@ -291,7 +291,7 @@ export default function AppLayout() {
           {onFlagsPage && flagCentric && currentProject && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
-              <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2563EB] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-full">
+              <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-brand-soft border border-brand-border px-2.5 py-0.5 rounded-full">
                 <Flag className="w-3 h-3" />
                 Flags
               </span>
@@ -301,7 +301,7 @@ export default function AppLayout() {
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
               <span className="text-sm font-semibold text-gray-800">{urlEnv.name}</span>
-              <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2563EB] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-full">
+              <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-brand-soft border border-brand-border px-2.5 py-0.5 rounded-full">
                 <Flag className="w-3 h-3" />
                 Flags
               </span>
