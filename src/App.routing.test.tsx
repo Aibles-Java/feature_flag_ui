@@ -8,7 +8,7 @@ import api from '@/api/axios'
 import { AppRoutes } from '@/App'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavStore } from '@/stores/navStore'
-import { ENV_DEV, FLAG_ID, ORG, PROJ, mockBackend } from '@/test/fixtures'
+import { ENV_DEV, FLAG_ID, ORG, PROJ, flag, mockBackend } from '@/test/fixtures'
 
 let mock: MockAdapter
 let navigateRef: ReturnType<typeof useNavigate>
@@ -55,8 +55,11 @@ describe('S-1.1 routes with the kill-switch ON', () => {
   })
 
   it('AC2: /projects/:p/flags/:flagId matches and passes flagId to the detail page', async () => {
+    mock.onGet(`/flags/${FLAG_ID}`).reply(200, flag(7, { id: FLAG_ID, key: 'routed-flag' }))
+    mock.onGet(`/flags/${FLAG_ID}/environments`).reply(200, [])
     mount([`${base}/flags/${FLAG_ID}`])
-    expect(await screen.findByTestId('flag-detail-placeholder')).toHaveTextContent(FLAG_ID)
+    expect(await screen.findByText('routed-flag')).toBeInTheDocument()
+    expect(mock.history.get.some((r) => r.url === `/flags/${FLAG_ID}`)).toBe(true)
   })
 
   it('AC3: legacy envs/:e/flags redirects (replace) to /flags?env=:e and adds no history entry', async () => {
