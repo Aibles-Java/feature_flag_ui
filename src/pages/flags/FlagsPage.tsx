@@ -370,12 +370,12 @@ export default function FlagsPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span aria-hidden="true" className={cn('w-2 h-2 rounded-full shrink-0', dotColour(envId, enabledById[flag.id] ?? false))} />
-                    <p className="text-sm font-semibold text-gray-900 truncate">{flag.name}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{flag.name}</p>
                   </div>
-                  {flag.description && <p className="text-xs text-gray-400 truncate ml-4 mt-0.5">{flag.description}</p>}
+                  {flag.description && <p className="text-xs text-muted-foreground truncate ml-4 mt-0.5">{flag.description}</p>}
                   <div className="ml-4 mt-1 flex items-center gap-2">
-                    <code className="text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md font-mono">{flag.key}</code>
-                    <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md border', tc?.cls ?? 'bg-gray-50 text-gray-500 border-gray-100')}>
+                    <code className="text-xs text-foreground bg-muted px-2 py-0.5 rounded-md font-mono">{flag.key}</code>
+                    <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md border', tc?.cls ?? 'bg-muted text-muted-foreground border-border')}>
                       {tc?.icon}{tc?.label ?? flag.valueType}
                     </span>
                   </div>
@@ -389,7 +389,7 @@ export default function FlagsPage() {
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button type="button" onClick={() => setDeleteTarget(flag)} aria-label={`Archive ${flag.name}`}
-                  className="p-1.5 rounded hover:bg-amber-50 text-gray-400 hover:text-amber-500 transition-colors">
+                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                   <Archive className="w-3.5 h-3.5" />
                 </button>
               </div>

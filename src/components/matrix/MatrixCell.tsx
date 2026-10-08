@@ -21,15 +21,22 @@ interface Props {
   detailHref?: (flag: FeatureFlag, envId: string) => string
 }
 
-export default function MatrixCell({ flag, env, active, focused, detailHref }: Readonly<Props>) {
+export default function MatrixCell(props: Readonly<Props>) {
+  // Off-screen rows do not mount the query observer at all: an unmounted observer aborts its
+  // queued request (see fetchCellState signal), so scrolled-away rows stop consuming D-20 slots.
+  // Already-fetched data stays in the query cache and reappears instantly on scroll-back.
+  if (!props.active) return <span className="text-xs text-muted-foreground" aria-busy="true">Loading…</span>
+  return <ActiveCell {...props} />
+}
+
+function ActiveCell({ flag, env, focused, detailHref }: Readonly<Props>) {
   const { data: state, isPending, isError, refetch } = useQuery({
     queryKey: cellQueryKey(flag.id, env.id),
-    queryFn: () => fetchCellState(flag.id, env.id),
-    enabled: active,
+    queryFn: ({ signal }) => fetchCellState(flag.id, env.id, signal),
     staleTime: STATE_STALE_TIME_MS,
   })
 
-  if (!active || isPending) {
+  if (isPending) {
     return <span className="text-xs text-muted-foreground" aria-busy="true">Loading…</span>
   }
   if (isError) {

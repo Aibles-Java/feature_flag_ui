@@ -1,7 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import MockAdapter from 'axios-mock-adapter'
 import { axe } from 'vitest-axe'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { act } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import api from '@/api/axios'
 import type { Environment } from '@/api/environments'
 import type { FeatureFlag } from '@/api/flags'
@@ -268,5 +269,41 @@ describe('FlagMatrix focus mode (S-1.4b)', () => {
     const { container } = mount([f], E_STG)
     await screen.findAllByText('On')
     expect(await axe(container)).toHaveNoViolations()
+  })
+})
+
+describe('FlagMatrix laziness and cancellation', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('with IntersectionObserver: off-screen rows issue 0 requests; a row issues its 3 when it enters view', async () => {
+    const observers: Array<{ el: Element; cb: IntersectionObserverCallback }> = []
+    class FakeIO {
+      cb: IntersectionObserverCallback
+      constructor(cb: IntersectionObserverCallback) { this.cb = cb }
+      observe(el: Element) { observers.push({ el, cb: this.cb }) }
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal('IntersectionObserver', FakeIO)
+    const flags = [flag(1), flag(2), flag(3)]
+    mock.onGet(/\/flags\/.+\/environments\/.+/).reply(200, st(flags[0], E_DEV))
+    mount(flags)
+    await new Promise((r) => setTimeout(r, 30))
+    expect(mock.history.get).toHaveLength(0)
+    const first = observers.find((o) => o.el.getAttribute('aria-rowindex') === '2')!
+    act(() => first.cb([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver))
+    await waitFor(() => expect(mock.history.get).toHaveLength(3))
+    await new Promise((r) => setTimeout(r, 30))
+    expect(mock.history.get).toHaveLength(3)
+  })
+
+  it('unmounting drops queued state requests (abort signal reaches the limiter)', async () => {
+    const flags = Array.from({ length: 20 }, (_, i) => flag(i + 1))
+    mock.onGet(/\/flags\/.+\/environments\/.+/).reply(() => new Promise((r) => setTimeout(() => r([200, st(flags[0], E_DEV)]), 400)))
+    const { unmount } = mount(flags)
+    await waitFor(() => expect(mock.history.get.length).toBeGreaterThan(0))
+    unmount()
+    await new Promise((r) => setTimeout(r, 700))
+    expect(mock.history.get.length).toBeLessThanOrEqual(MAX_CONCURRENT_STATE_REQUESTS)
   })
 })

@@ -33,6 +33,50 @@ describe('createLimiter', () => {
     await expect(run(async () => 'ok')).resolves.toBe('ok')
   })
 
+  it('handoff race: a caller arriving between release and the waiter waking cannot exceed max', async () => {
+    const run = createLimiter(1)
+    let active = 0
+    let peak = 0
+    const track = async () => {
+      active++
+      peak = Math.max(peak, active)
+      await new Promise((r) => setTimeout(r, 1))
+      active--
+    }
+    let finishA!: () => void
+    const a = run(() => new Promise<void>((r) => (finishA = r)))
+    const b = run(track) // queued
+    finishA()
+    queueMicrotask(() => void run(track).catch(() => {})) // lands right after A's release
+    await Promise.all([a, b])
+    await new Promise((r) => setTimeout(r, 10))
+    expect(peak).toBe(1)
+  })
+
+  it('an aborted queued task never runs and rejects; the slot order is preserved', async () => {
+    const run = createLimiter(1)
+    let finishA!: () => void
+    const a = run(() => new Promise<void>((r) => (finishA = r)))
+    const ran: string[] = []
+    const ac = new AbortController()
+    const dropped = run(async () => void ran.push('dropped'), ac.signal)
+    const kept = run(async () => void ran.push('kept'))
+    ac.abort()
+    await expect(dropped).rejects.toMatchObject({ name: 'AbortError' })
+    finishA()
+    await Promise.all([a, kept])
+    expect(ran).toEqual(['kept'])
+  })
+
+  it('an already-aborted signal rejects without running', async () => {
+    const run = createLimiter(2)
+    const ac = new AbortController()
+    ac.abort()
+    let ran = false
+    await expect(run(async () => void (ran = true), ac.signal)).rejects.toMatchObject({ name: 'AbortError' })
+    expect(ran).toBe(false)
+  })
+
   it('rejects a non-positive limit', () => {
     expect(() => createLimiter(0)).toThrow()
   })
