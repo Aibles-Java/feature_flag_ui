@@ -303,7 +303,7 @@ describe('S-1.9 ProdGuardDialog (advisory; server decides)', () => {
   it('does not guess the window when the server did not report it', async () => {
     const { user, guard } = await openProdGuard({ changeWindowOpenNow: null })
     await user.type(within(guard).getByLabelText(/Type the flag key/), 'checkout-banner')
-    await waitFor(() => expect(within(guard).getByTestId('prod-guard-window')).toHaveTextContent(/status is unavailable/i))
+    await waitFor(() => expect(within(guard).getByTestId('prod-guard-window')).toHaveTextContent(/status unknown/i))
     expect(within(guard).getByRole('button', { name: /save to production/i })).toBeEnabled()
   })
 
@@ -315,6 +315,49 @@ describe('S-1.9 ProdGuardDialog (advisory; server decides)', () => {
     expect(await within(guard).findByText('Only an OWNER may change PRODUCTION')).toBeInTheDocument()
     const card = screen.getByRole('region', { name: 'Synthetic Prod state', hidden: true })
     expect(within(card).getByText('prod-val')).toBeInTheDocument()
+  })
+
+  it('resets the typed key after Cancel so a reopened guard needs the key again', async () => {
+    const { user, guard } = await openProdGuard()
+    await user.type(within(guard).getByLabelText(/Type the flag key/), 'checkout-banner')
+    await user.click(within(guard).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /confirm change/i })).not.toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /review and save/i }))
+    const again = await screen.findByRole('dialog', { name: /confirm change/i })
+    expect(within(again).getByLabelText(/Type the flag key/)).toHaveValue('')
+    expect(within(again).getByRole('button', { name: /save to production/i })).toBeDisabled()
+  })
+
+  it('treats a failed window reload as unknown: stale list data neither blocks nor claims open', async () => {
+    const prod = { ...envProd, changeWindowOpenNow: false }
+    setup({ envs: [prod, envDev, envStg] })
+    mock.onGet(`/environments/${ENV_PROD}`).reply(500)
+    const { user } = mount()
+    await user.click(await screen.findByRole('button', { name: 'Edit Synthetic Prod' }))
+    const editor = await screen.findByRole('dialog')
+    await within(editor).findByLabelText(/^Value/)
+    await user.click(within(editor).getByRole('button', { name: /review and save/i }))
+    const guard = await screen.findByRole('dialog', { name: /confirm change/i })
+    await user.type(within(guard).getByLabelText(/Type the flag key/), 'checkout-banner')
+    await waitFor(() => expect(within(guard).getByTestId('prod-guard-window')).toHaveTextContent(/status unknown/i))
+    expect(within(guard).getByTestId('prod-guard-window')).not.toHaveTextContent(/closed right now|open right now/i)
+    expect(within(guard).getByRole('button', { name: /save to production/i })).toBeEnabled()
+  })
+
+  it('a window-focus refetch keeps typed edits and the open guard', async () => {
+    const { user, guard } = await openProdGuard()
+    await user.type(within(guard).getByLabelText(/Type the flag key/), 'checkout')
+    const before = mock.history.get.length
+    window.dispatchEvent(new Event('focus'))
+    document.dispatchEvent(new Event('visibilitychange'))
+    await new Promise((r) => setTimeout(r, 50))
+    expect(mock.history.get.filter((r) => r.url?.includes(`/environments/${ENV_PROD}`) && r.url.includes('/flags/')).length).toBe(1)
+    expect(mock.history.get.length).toBeGreaterThanOrEqual(before)
+    const still = screen.getByRole('dialog', { name: /confirm change/i })
+    expect(within(still).getByLabelText(/Type the flag key/)).toHaveValue('checkout')
+    await user.click(within(still).getByRole('button', { name: 'Cancel' }))
+    const editor = await screen.findByRole('dialog')
+    expect(within(editor).getByLabelText(/^Value/)).toHaveValue('new-prod')
   })
 
   it('guard has no axe violations', async () => {

@@ -34,7 +34,7 @@ describe('AC1: no hard-coded colours outside index.css', () => {
 
 // Raw Tailwind palette utilities (text-gray-500, bg-slate-100, ...) bypass the semantic tokens.
 // The legacy pages still contain them (tracked for migration), so the ban is enforced on the
-// matrix code (S-1.4) and on the matrix region of FlagsPage; extend NEW_CODE as pages migrate.
+// matrix code (S-1.4) and on the matrix region of FlagsPage; extend the `migrated` filter below as pages migrate.
 const PALETTE = /\b(?:[a-z-]+:)*[a-z]+-(?:gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/
 describe('no raw Tailwind palette classes in migrated code', () => {
   it('detector catches known offenders', () => {
@@ -42,7 +42,9 @@ describe('no raw Tailwind palette classes in migrated code', () => {
     for (const c of ['text-foreground', 'bg-chip-on', 'hover:bg-muted']) expect(PALETTE.test(c)).toBe(false)
   })
   const migrated = Object.keys(sources).filter(
-    (f) => (f.startsWith('/src/components/matrix/') || f.startsWith('/src/api/flagMatrix') ) && !/\.test\.tsx?$/.test(f),
+    (f) => (f.startsWith('/src/components/matrix/') || f.startsWith('/src/api/flagMatrix') ||
+      f.startsWith('/src/components/flags/') || f === '/src/pages/flags/FlagDetailPage.tsx' ||
+      f === '/src/api/flagEnvironments.ts') && !/\.test\.tsx?$/.test(f),
   )
   it('matrix components are palette-free', () => {
     expect(migrated.length).toBeGreaterThan(3)
@@ -67,7 +69,7 @@ const themeInline = /@theme inline \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ''
 
 const NEW_TOKENS = [
   'brand-strong', 'brand-soft', 'brand-mid', 'brand-tint', 'brand-border', 'brand-light',
-  'success', 'success-soft', 'success-text',
+  'success', 'success-soft', 'success-text', 'warning-soft', 'warning-border', 'warning-text',
   'chip-on', 'chip-on-hover', 'chip-on-foreground', 'chip-off', 'chip-off-foreground', 'chip-off-hover',
   'faint', 'faint-strong',
 ]
@@ -104,6 +106,7 @@ const PAIRS: string[][] = [
   ['brand-strong', 'brand-soft'],
   ['brand-strong', 'brand-tint'], // brand-mid is border-only (no text pair)
   ['success-text', 'success-soft'],
+  ['warning-text', 'warning-soft'],
 ]
 
 describe('AC3: chip contrast >= 4.5:1 (WCAG AA) in both modes', () => {

@@ -49,7 +49,12 @@ function DiffRow({ label, before, after }: Readonly<{ label: string; before: str
  * dialog says so. The window state is the server's `changeWindowOpenNow`; it is never computed
  * from the browser clock. A 403 from the server is shown verbatim by {@link ApiError}.
  */
-export default function ProdGuardDialog({ open, flagKey, env, before, after, saving, error, onConfirm, onCancel }: Readonly<Props>) {
+export default function ProdGuardDialog(props: Readonly<Props>) {
+  // Mounted only while open so the typed confirmation never survives a cancel or a failed save.
+  return props.open ? <GuardBody {...props} /> : null
+}
+
+function GuardBody({ open, flagKey, env, before, after, saving, error, onConfirm, onCancel }: Readonly<Props>) {
   const [typed, setTyped] = useState('')
   const fresh = useQuery({
     queryKey: ['environment-window', env.id],
@@ -59,11 +64,13 @@ export default function ProdGuardDialog({ open, flagKey, env, before, after, sav
     staleTime: 0,
     retry: false,
   })
-  const current = fresh.data ?? env
-  const windowKnown = current.changeWindowOpenNow !== undefined && current.changeWindowOpenNow !== null
-  const closed = current.changeWindowOpenNow === false
-  const hasWindow = current.changeWindowStartHour != null && current.changeWindowEndHour != null
-  const zone = current.changeWindowZone ?? current.changeWindowTimezone
+  // Only the freshly loaded window counts. While loading, or if the reload failed, the status is
+  // unknown: stale list data must neither block Save nor claim the window is open.
+  const current = fresh.data
+  const windowKnown = current?.changeWindowOpenNow !== undefined && current?.changeWindowOpenNow !== null
+  const closed = current?.changeWindowOpenNow === false
+  const hasWindow = current != null && current.changeWindowStartHour != null && current.changeWindowEndHour != null
+  const zone = current?.changeWindowZone ?? current?.changeWindowTimezone
   const keyMatches = typed === flagKey
 
   return (
@@ -105,7 +112,7 @@ export default function ProdGuardDialog({ open, flagKey, env, before, after, sav
           {windowKnown ? (
             <p>{closed ? 'The change window is closed right now. The server will reject this change.' : 'The change window is open right now.'}</p>
           ) : (
-            <p>Window status is unavailable. The server decides when you save.</p>
+            <p>Window status unknown. The server decides when you save.</p>
           )}
         </div>
 

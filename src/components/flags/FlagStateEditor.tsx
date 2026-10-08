@@ -40,6 +40,11 @@ export default function FlagStateEditor({ flag, env, open, onClose }: Readonly<P
     gcTime: 0,
     staleTime: 0,
     retry: false,
+    // One reload when the editor opens; later refetches must never rebuild the form and discard
+    // the user's edits or an open PROD confirmation.
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
   })
 
   return (
@@ -54,7 +59,7 @@ export default function FlagStateEditor({ flag, env, open, onClose }: Readonly<P
         {fresh.isPending && <p role="status" className="text-sm text-muted-foreground">Loading current state...</p>}
         {fresh.isError && <ApiError error={fresh.error} />}
         {fresh.data && (
-          <EditorForm key={fresh.dataUpdatedAt} flag={flag} env={env} loaded={fresh.data} onClose={onClose} />
+          <EditorForm flag={flag} env={env} loaded={fresh.data} onClose={onClose} />
         )}
       </DialogContent>
     </Dialog>
@@ -107,7 +112,7 @@ function EditorForm({ flag, env, loaded, onClose }: Readonly<{ flag: FeatureFlag
 
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
-      <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+      <p className="flex items-start gap-2 rounded-lg border border-warning-border bg-warning-soft p-2.5 text-xs text-warning-text">
         <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         Saving may overwrite concurrent changes made by someone else since this state was loaded.
       </p>

@@ -20,6 +20,9 @@
     --color-success: var(--success);
     --color-success-soft: var(--success-soft);
     --color-success-text: var(--success-text);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-border: var(--warning-border);
+    --color-warning-text: var(--warning-text);
     --color-chip-on: var(--chip-on);
     --color-chip-on-hover: var(--chip-on-hover);
     --color-chip-on-foreground: var(--chip-on-foreground);
@@ -130,6 +133,10 @@
     --success: #10B981;
     --success-soft: #ECFDF5;
     --success-text: #15803D;
+    /* Advisory banner: warning-text on warning-soft = about 9.7:1 (AA needs 4.5:1) */
+    --warning-soft: #FFFBEB;
+    --warning-border: #FDE68A;
+    --warning-text: #78350F;
     --faint: #94A3B8;
     --faint-strong: #CBD5E1;
     --chip-on: #047857;
@@ -182,6 +189,10 @@
     --success: #34D399;
     --success-soft: #064E3B;
     --success-text: #4ADE80;
+    /* warning-text on warning-soft = about 13:1 */
+    --warning-soft: #451A03;
+    --warning-border: #92400E;
+    --warning-text: #FDE68A;
     --faint: #64748B;
     --faint-strong: #475569;
     --chip-on: #047857;

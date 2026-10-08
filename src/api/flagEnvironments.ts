@@ -47,7 +47,11 @@ export interface SaveFlagStateInput {
   rolloutPercent: number
   /** True only when the user deliberately emptied a value that the loaded state had. */
   clearValue?: boolean
-  /** PROD only: the user saw the ProdGuardDialog. Audit evidence, never an authorisation (D-03). */
+  /**
+   * PROD only: the user saw the ProdGuardDialog. Sent for forward compatibility (D-03 intends it as
+   * audit evidence only, never an authorisation). The backend does not declare or persist it yet;
+   * it ignores unknown fields until a BE story records it.
+   */
   prodAcknowledged?: boolean
 }
 
