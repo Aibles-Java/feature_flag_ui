@@ -33,7 +33,7 @@ export default function AppLayout() {
   const currentProject = projects.find((p) => p.id === projectId) ?? (storeProject?.id === projectId ? storeProject : null)
   // Env switcher only exists in the old (kill-switch off) sidebar; the flag-centric UI takes env from ?env= (S-1.2/S-1.3).
   const { data: envs = [] } = useQuery({ queryKey: ['envs', currentProject?.id], queryFn: () => getEnvironments(currentProject!.id), enabled: !flagCentric && !!currentProject })
-  const currentEnv = flagCentric ? null : envs.find((e) => e.id === params.envId) ?? null
+  const urlEnv = flagCentric ? null : envs.find((e) => e.id === params.envId) ?? null
 
   const handleLogout = async () => {
     // Best-effort server-side revoke; log out locally regardless of the result.
@@ -197,7 +197,7 @@ export default function AppLayout() {
                 {showEnvs && (
                   <div className="ml-4 mt-1 pl-3 border-l border-white/10 space-y-0.5 pb-1">
                     {envs.map((e) => {
-                      const active = currentEnv?.id === e.id
+                      const active = urlEnv?.id === e.id
                       return (
                         <button type="button"
                           key={e.id}
@@ -297,10 +297,10 @@ export default function AppLayout() {
               </span>
             </>
           )}
-          {currentEnv && onFlagsPage && (
+          {urlEnv && onFlagsPage && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
-              <span className="text-sm font-semibold text-gray-800">{currentEnv.name}</span>
+              <span className="text-sm font-semibold text-gray-800">{urlEnv.name}</span>
               <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2563EB] bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-0.5 rounded-full">
                 <Flag className="w-3 h-3" />
                 Flags

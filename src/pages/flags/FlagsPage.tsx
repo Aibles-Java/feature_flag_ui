@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -95,8 +95,20 @@ export default function FlagsPage() {
   // the validated ?env= search param (S-1.2) - never from zustand.
   const { envId: urlEnvId, environments } = useEnvParam(legacyEnvId ? undefined : projectId)
   const envId = legacyEnvId ?? urlEnvId
-  const [, setSearchParams] = useSearchParams()
-  const [pageIndex, setPageIndex] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  // Page lives in the URL (?page=, 1-based) so reload and Back preserve it. Other params (?env=) are kept.
+  const rawPage = Number.parseInt(searchParams.get('page') ?? '1', 10)
+  const pageIndex = Number.isFinite(rawPage) && rawPage > 1 ? rawPage - 1 : 0
+  const setPageIndex = (idx: number, replace = false) =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (idx > 0) next.set('page', String(idx + 1))
+        else next.delete('page')
+        return next
+      },
+      { replace },
+    )
 
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -108,15 +120,23 @@ export default function FlagsPage() {
   const [deleteTarget, setDeleteTarget] = useState<FeatureFlag | null>(null)
   const [showArchived, setShowArchived] = useState(false)
 
-  const { data: flagsPage, isLoading } = useQuery({
+  const { data: flagsPage, isLoading, isPlaceholderData } = useQuery({
     queryKey: ['flags', projectId, pageIndex],
     queryFn: () => getFlags(projectId!, pageIndex, MAX_FLAGS_PAGE_SIZE),
     enabled: !!projectId,
-    placeholderData: (prev) => prev,
+    // Keep the previous page while paging, but never another project's flags.
+    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[1] === projectId ? prev : undefined),
   })
   const flags = useMemo(() => flagsPage?.content ?? [], [flagsPage])
   const totalElements = flagsPage?.totalElements ?? 0
   const totalPages = Math.max(flagsPage?.totalPages ?? 1, 1)
+
+  // List shrank (archive/delete) while on a later page: clamp back to the last real page.
+  const loadedPage = flagsPage && !isPlaceholderData
+  useEffect(() => {
+    if (loadedPage && pageIndex > 0 && pageIndex > totalPages - 1) setPageIndex(totalPages - 1, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedPage, pageIndex, totalPages])
 
   const activeFlags = useMemo(() => flags.filter((f) => !f.archived), [flags])
 
@@ -224,7 +244,7 @@ export default function FlagsPage() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: 'Total flags', value: totalElements,              color: 'text-[#0F172A]',   accent: 'border-l-[#2563EB]',   icon: <Flag className="w-5 h-5 text-[#2563EB]" />,           bg: 'bg-[#EFF6FF]'  },
-            { label: 'Enabled',     value: enabledCount,                    color: 'text-[#16A34A]',   accent: 'border-l-[#10B981]',   icon: <ToggleRight className="w-5 h-5 text-[#10B981]" />,     bg: 'bg-[#ECFDF5]'  },
+            { label: 'Enabled (this page)',     value: enabledCount,                    color: 'text-[#16A34A]',   accent: 'border-l-[#10B981]',   icon: <ToggleRight className="w-5 h-5 text-[#10B981]" />,     bg: 'bg-[#ECFDF5]'  },
             { label: 'Archived',    value: archivedFlags.length,            color: 'text-[#64748B]',   accent: 'border-l-[#E2E8F0]',   icon: <Archive className="w-5 h-5 text-[#64748B]" />,         bg: 'bg-[#F8FAFC]'  },
           ].map((s) => (
             <div key={s.label} className={cn('rounded-xl border border-[#E2E8F0] border-l-4 px-5 py-5 flex items-center gap-4 shadow-sm bg-white', s.accent)}>
@@ -250,12 +270,12 @@ export default function FlagsPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search flags…"
+              placeholder="Search this page…"
               className="pl-9 h-9 bg-gray-50 border-gray-200 text-sm focus:bg-white"
             />
           </div>
           <p className="text-xs text-gray-400 ml-auto">
-            {filtered.length} of {activeFlags.length} shown
+            {filtered.length} of {activeFlags.length} on this page
           </p>
         </div>
 
@@ -419,16 +439,16 @@ export default function FlagsPage() {
         )}
 
         {/* Pagination (D-18: page controls, no "load more") */}
-        {totalPages > 1 && (
+        {(totalPages > 1 || pageIndex > 0) && (
           <nav aria-label="Flags pagination" className="flex items-center justify-between px-5 py-3 border-t border-[#F1F5F9]">
             <p className="text-xs text-gray-500">Page {pageIndex + 1} of {totalPages}</p>
             <div className="flex items-center gap-2">
               <Button type="button" variant="outline" size="sm" aria-label="Previous page"
-                disabled={pageIndex === 0} onClick={() => setPageIndex((p) => Math.max(p - 1, 0))}>
+                disabled={pageIndex === 0} onClick={() => setPageIndex(Math.max(pageIndex - 1, 0))}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button type="button" variant="outline" size="sm" aria-label="Next page"
-                disabled={pageIndex >= totalPages - 1} onClick={() => setPageIndex((p) => p + 1)}>
+                disabled={pageIndex >= totalPages - 1} onClick={() => setPageIndex(pageIndex + 1)}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>

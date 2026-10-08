@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import MockAdapter from 'axios-mock-adapter'
-import { Route, Routes } from 'react-router-dom'
+import { Link, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import api from '@/api/axios'
 import { renderWithProviders } from '@/test/renderWithProviders'
@@ -9,27 +9,33 @@ import FlagsPage from './FlagsPage'
 
 let mock: MockAdapter
 const TOTAL = 130
-const all = Array.from({ length: TOTAL }, (_, i) => flag(i + 1))
+let all = Array.from({ length: TOTAL }, (_, i) => flag(i + 1))
+const OTHER = '00000000-0000-4000-8000-0000000000b2'
 
 beforeEach(() => {
+  all = Array.from({ length: TOTAL }, (_, i) => flag(i + 1))
   window.__ENV__ = { FLAG_CENTRIC_NAV: 'true' }
   mock = new MockAdapter(api)
   mockBackend(mock)
   // Server-side paging, clamped to 100 like the real endpoint (F12).
   mock.onGet('/flags').reply((cfg) => {
+    if (cfg.params.projectId === OTHER) return [200, pageOf([flag(900, { name: 'Other project flag', projectId: OTHER })])]
     const page = Number(cfg.params.page ?? 0)
     const size = Math.min(Number(cfg.params.size ?? 20), 100)
-    return [200, pageOf(all.slice(page * size, page * size + size), { page, size, totalElements: TOTAL, totalPages: Math.ceil(TOTAL / size) })]
+    return [200, pageOf(all.slice(page * size, page * size + size), { page, size, totalElements: all.length, totalPages: Math.ceil(all.length / size) })]
   })
 })
 afterEach(() => mock.restore())
 
-const mount = () =>
+const mount = (search = '') =>
   renderWithProviders(
-    <Routes>
-      <Route path="/orgs/:orgId/projects/:projectId/flags" element={<FlagsPage />} />
-    </Routes>,
-    { route: `/orgs/${ORG}/projects/${PROJ}/flags` },
+    <>
+      <Link to={`/orgs/${ORG}/projects/${OTHER}/flags`}>switch project</Link>
+      <Routes>
+        <Route path="/orgs/:orgId/projects/:projectId/flags" element={<FlagsPage />} />
+      </Routes>
+    </>,
+    { route: `/orgs/${ORG}/projects/${PROJ}/flags${search}` },
   )
 
 const flagRequests = () => mock.history.get.filter((r) => r.url === '/flags')
@@ -65,5 +71,48 @@ describe('FlagsPage pagination (S-1.5, D-18)', () => {
     await screen.findByText('Synthetic flag 130')
     await user.click(screen.getByRole('button', { name: 'Previous page' }))
     expect(await screen.findByText('Synthetic flag 1')).toBeInTheDocument()
+  })
+
+  it('list shrinks while on the last page: clamps back to the last real page, pager stays usable', async () => {
+    all = all.slice(0, 100) // page 2 is now empty, totalPages = 1
+    mount('?page=2')
+    expect(await screen.findByText('Synthetic flag 1')).toBeInTheDocument()
+    expect(flagRequests().some((r) => r.params.page === 1)).toBe(true)
+    expect(flagRequests().at(-1)?.params.page).toBe(0)
+  })
+
+  it('0 results on a deep page shows the empty state, not a stuck empty page', async () => {
+    all = []
+    mount('?page=3')
+    expect(await screen.findByText('No feature flags yet')).toBeInTheDocument()
+    expect(screen.getByTestId('flags-total')).toHaveTextContent('0')
+  })
+
+  it('pager is rendered on a middle page and ?page= survives a reload', async () => {
+    all = Array.from({ length: 250 }, (_, i) => flag(i + 1))
+    const { user } = mount('?page=2')
+    expect(await screen.findByText('Synthetic flag 101')).toBeInTheDocument()
+    expect(screen.getByText('Page 2 of 3')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(await screen.findByText('Page 3 of 3')).toBeInTheDocument()
+  })
+
+  it('switching project shows that project\'s flags from page 1, never the previous project\'s', async () => {
+    const { user } = mount('?page=2')
+    await screen.findByText('Page 2 of 2')
+    await user.click(screen.getByRole('link', { name: 'switch project' }))
+    expect(await screen.findByText('Other project flag')).toBeInTheDocument()
+    expect(screen.queryByText(/^Synthetic flag \d+$/)).not.toBeInTheDocument()
+    const last = flagRequests().at(-1)!
+    expect(last.params).toMatchObject({ projectId: OTHER, page: 0 })
+  })
+
+  it('labels are honest: page-scoped counters say "this page"', async () => {
+    mount()
+    await screen.findByText('Synthetic flag 1')
+    expect(screen.getByText('Enabled (this page)')).toBeInTheDocument()
+    expect(screen.getByText('100 of 100 on this page')).toBeInTheDocument()
   })
 })
