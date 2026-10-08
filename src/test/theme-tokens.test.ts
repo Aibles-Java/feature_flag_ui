@@ -32,6 +32,31 @@ describe('AC1: no hard-coded colours outside index.css', () => {
   })
 })
 
+// Raw Tailwind palette utilities (text-gray-500, bg-slate-100, ...) bypass the semantic tokens.
+// The legacy pages still contain them (tracked for migration), so the ban is enforced on the
+// matrix code (S-1.4) and on the matrix region of FlagsPage; extend NEW_CODE as pages migrate.
+const PALETTE = /\b(?:[a-z-]+:)*[a-z]+-(?:gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/
+describe('no raw Tailwind palette classes in migrated code', () => {
+  it('detector catches known offenders', () => {
+    for (const c of ['text-gray-900', 'bg-slate-100', 'hover:bg-amber-50', 'border-red-500']) expect(PALETTE.test(c)).toBe(true)
+    for (const c of ['text-foreground', 'bg-chip-on', 'hover:bg-muted']) expect(PALETTE.test(c)).toBe(false)
+  })
+  const migrated = Object.keys(sources).filter(
+    (f) => (f.startsWith('/src/components/matrix/') || f.startsWith('/src/api/flagMatrix') ) && !/\.test\.tsx?$/.test(f),
+  )
+  it('matrix components are palette-free', () => {
+    expect(migrated.length).toBeGreaterThan(3)
+    const offenders = migrated.filter((f) => PALETTE.test(sources[f]))
+    expect(offenders).toEqual([])
+  })
+  it('the matrix region of FlagsPage is palette-free', () => {
+    const src = sources['/src/pages/flags/FlagsPage.tsx']
+    const region = src.slice(src.indexOf('{/* Matrix (flag-centric'), src.indexOf('{/* Table (legacy'))
+    expect(region.length).toBeGreaterThan(500)
+    expect(region.split('\n').filter((l) => PALETTE.test(l))).toEqual([])
+  })
+})
+
 function block(selector: string): string {
   const m = new RegExp(`(^|\\n)${selector.replace('.', '\\.')}\\s*\\{([\\s\\S]*?)\\n\\}`).exec(css)
   return m ? m[2] : ''

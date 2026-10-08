@@ -3,9 +3,12 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getFlags, getArchivedFlags, createFlag, updateFlag, deleteFlag,
-  unarchiveFlag, updateFlagState, getFlagState,
+  unarchiveFlag, getFlagState,
   MAX_FLAGS_PAGE_SIZE, type FlagValueType, type FeatureFlag,
 } from '@/api/flags'
+import { toggleFlagEnabled } from '@/api/flagToggle'
+import { cellQueryKey, fetchCellState } from '@/api/flagMatrix'
+import FlagMatrix from '@/components/matrix/FlagMatrix'
 import { useEnvParam } from '@/hooks/useEnvParam'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,7 +44,8 @@ function FlagToggle({ flagId, envId }: Readonly<{ flagId: string; envId: string 
     queryFn: () => getFlagState(flagId, envId),
   })
   const toggle = useMutation({
-    mutationFn: (enabled: boolean) => updateFlagState(flagId, envId, { enabled }),
+    // S-0.1: reload + send the full state (value, rolloutPercent) - see api/flagToggle.ts.
+    mutationFn: (enabled: boolean) => toggleFlagEnabled(flagId, envId, enabled),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['flag-state', flagId, envId] }),
   })
 
@@ -92,7 +96,7 @@ function dotColour(envId: string | undefined, isEnabled: boolean): string {
 const MAX_PAGE_PARAM = 100000
 
 export default function FlagsPage() {
-  const { projectId, envId: legacyEnvId } = useParams<{ projectId: string; envId: string }>()
+  const { orgId, projectId, envId: legacyEnvId } = useParams<{ orgId: string; projectId: string; envId: string }>()
   const qc = useQueryClient()
   // Legacy route (kill-switch off): env comes from the path, as before. New route: env comes from
   // the validated ?env= search param (S-1.2) - never from zustand.
@@ -144,10 +148,11 @@ export default function FlagsPage() {
   const activeFlags = useMemo(() => flags.filter((f) => !f.archived), [flags])
 
   const flagStateQueries = useQueries({
-    queries: envId ? activeFlags.map((f) => ({
-      queryKey: ['flag-state', f.id, envId],
-      queryFn: () => getFlagState(f.id, envId!),
-    })) : [],
+    queries: envId ? activeFlags.map((f) => (legacyEnvId
+      ? { queryKey: ['flag-state', f.id, envId], queryFn: () => getFlagState(f.id, envId) }
+      // Matrix route: the cells own fetching (lazy, D-20-limited). This only observes their
+      // cache for the "Enabled" stat, so it must not issue its own requests.
+      : { queryKey: cellQueryKey(f.id, envId), queryFn: () => fetchCellState(f.id, envId), enabled: false })) : [],
   })
   const enabledCount = flagStateQueries.filter((q) => q.data?.enabled).length
 
@@ -352,8 +357,48 @@ export default function FlagsPage() {
           </div>
         )}
 
-        {/* Table */}
-        {!isLoading && filtered.length > 0 && (
+        {/* Matrix (flag-centric route, S-1.4a/b) */}
+        {!isLoading && filtered.length > 0 && !legacyEnvId && (
+          <FlagMatrix
+            flags={filtered}
+            environments={environments}
+            focusEnvId={envId}
+            detailHref={(f, e) => `/orgs/${orgId}/projects/${projectId}/flags/${f.id}?env=${encodeURIComponent(e)}`}
+            renderRowHeader={(flag) => {
+              const tc = typeConfig[flag.valueType]
+              return (
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden="true" className={cn('w-2 h-2 rounded-full shrink-0', dotColour(envId, enabledById[flag.id] ?? false))} />
+                    <p className="text-sm font-semibold text-foreground truncate">{flag.name}</p>
+                  </div>
+                  {flag.description && <p className="text-xs text-muted-foreground truncate ml-4 mt-0.5">{flag.description}</p>}
+                  <div className="ml-4 mt-1 flex items-center gap-2">
+                    <code className="text-xs text-foreground bg-muted px-2 py-0.5 rounded-md font-mono">{flag.key}</code>
+                    <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md border', tc?.cls ?? 'bg-muted text-muted-foreground border-border')}>
+                      {tc?.icon}{tc?.label ?? flag.valueType}
+                    </span>
+                  </div>
+                </div>
+              )
+            }}
+            renderActions={(flag) => (
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => openEdit(flag)} aria-label={`Edit ${flag.name}`}
+                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => setDeleteTarget(flag)} aria-label={`Archive ${flag.name}`}
+                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                  <Archive className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          />
+        )}
+
+        {/* Table (legacy env-first route only) */}
+        {!isLoading && filtered.length > 0 && !!legacyEnvId && (
           <>
             <div className={cn(
               'grid items-center px-5 py-3 bg-background border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider',
