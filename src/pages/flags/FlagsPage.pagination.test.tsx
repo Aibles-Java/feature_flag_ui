@@ -1,11 +1,25 @@
 import { screen, waitFor } from '@testing-library/react'
 import MockAdapter from 'axios-mock-adapter'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import api from '@/api/axios'
 import { renderWithProviders } from '@/test/renderWithProviders'
 import { PROJ, ORG, flag, mockBackend, pageOf } from '@/test/fixtures'
 import FlagsPage from './FlagsPage'
+
+// These tests cover the pager (page size, page=, ?env=, clamping), not the cells. Mounting the real
+// 100-row x 3-env matrix (300 cells, ARIA grid, roving tabindex) on every page change made them
+// 10x slower on the CI runner under coverage and hit the 5s timeout. The stub keeps the real
+// per-row header (flag names, counters) so "100 of 130" is still asserted on rendered rows.
+vi.mock('@/components/matrix/FlagMatrix', () => ({
+  default: ({ flags, renderRowHeader }: { flags: { id: string }[]; renderRowHeader: (f: never) => React.ReactNode }) => (
+    <ul>
+      {flags.map((f) => (
+        <li key={f.id}>{renderRowHeader(f as never)}</li>
+      ))}
+    </ul>
+  ),
+}))
 
 let mock: MockAdapter
 const TOTAL = 130
