@@ -143,7 +143,7 @@ export default function ProjectMembersPage() {
                   <tr key={g.userId} className="group hover:bg-slate-50/60 transition-colors">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-xs font-bold text-white shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
                           {grantName(g).charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -159,7 +159,7 @@ export default function ProjectMembersPage() {
                           {g.customRoleName ?? 'Custom role'}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-brand-soft text-brand-strong border-brand-border">
                           <Shield className="w-3 h-3" />
                           {g.role}
                         </span>
@@ -231,7 +231,7 @@ export default function ProjectMembersPage() {
                     className={cn(
                       'px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
                       kind === k
-                        ? 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
+                        ? 'border-brand-border bg-brand-soft text-brand-strong'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     )}
                   >
