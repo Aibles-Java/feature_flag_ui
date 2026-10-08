@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { logout as revokeSession } from '@/api/auth'
 import { useNavStore } from '@/stores/navStore'
@@ -8,6 +8,7 @@ import { getOrgs } from '@/api/orgs'
 import { getProjects } from '@/api/projects'
 import { getEnvironments } from '@/api/environments'
 import { cn } from '@/lib/utils'
+import { isFlagCentricNavEnabled } from '@/config/runtimeFlags'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import type { EnvType } from '@/api/abac'
 import { Flag, FolderKanban, LogOut, ChevronRight, Layers, ChevronDown, Users, KeyRound, ScrollText, UserCog } from 'lucide-react'
@@ -16,13 +17,23 @@ export default function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { token, email, refreshToken, logout } = useAuthStore()
-  const { currentOrg, currentProject, currentEnv, setCurrentOrg, setCurrentProject, setCurrentEnv } = useNavStore()
+  const params = useParams<{ orgId: string; projectId: string; envId: string }>()
+  const { currentOrg: storeOrg, currentProject: storeProject, setCurrentOrg, setCurrentProject } = useNavStore()
+  // Kill-switch (S-1.11): off/unset = old env-first sidebar. Read per render (runtime config).
+  const flagCentric = isFlagCentricNavEnabled()
 
   useEffect(() => { if (!token) navigate('/login') }, [token, navigate])
 
   const { data: orgs = [] } = useQuery({ queryKey: ['orgs'], queryFn: getOrgs, enabled: !!token })
-  const { data: projects = [] } = useQuery({ queryKey: ['projects', currentOrg?.id], queryFn: () => getProjects(currentOrg!.id), enabled: !!currentOrg })
-  const { data: envs = [] } = useQuery({ queryKey: ['envs', currentProject?.id], queryFn: () => getEnvironments(currentProject!.id), enabled: !!currentProject })
+  // Org/project context follows the URL first (survives reload - the store is empty then), then the store.
+  const orgId = params.orgId ?? storeOrg?.id
+  const currentOrg = orgs.find((o) => o.id === orgId) ?? (storeOrg?.id === orgId ? storeOrg : null)
+  const { data: projects = [] } = useQuery({ queryKey: ['projects', orgId], queryFn: () => getProjects(orgId!), enabled: !!orgId && !!token })
+  const projectId = params.projectId ?? storeProject?.id
+  const currentProject = projects.find((p) => p.id === projectId) ?? (storeProject?.id === projectId ? storeProject : null)
+  // Env switcher only exists in the old (kill-switch off) sidebar; the flag-centric UI takes env from ?env= (S-1.2/S-1.3).
+  const { data: envs = [] } = useQuery({ queryKey: ['envs', currentProject?.id], queryFn: () => getEnvironments(currentProject!.id), enabled: !flagCentric && !!currentProject })
+  const urlEnv = flagCentric ? null : envs.find((e) => e.id === params.envId) ?? null
 
   const handleLogout = async () => {
     // Best-effort server-side revoke; log out locally regardless of the result.
@@ -43,7 +54,6 @@ export default function AppLayout() {
   }
 
   const selectEnv = (e: (typeof envs)[0]) => {
-    setCurrentEnv(e)
     navigate(`/orgs/${currentOrg!.id}/projects/${currentProject!.id}/envs/${e.id}/flags`)
   }
 
@@ -135,7 +145,7 @@ export default function AppLayout() {
 
           {projects.map((p) => {
             const isActive = currentProject?.id === p.id || location.pathname.includes(`/projects/${p.id}`)
-            const showEnvs = currentProject?.id === p.id && envs.length > 0
+            const showEnvs = !flagCentric && currentProject?.id === p.id && envs.length > 0
 
             return (
               <div key={p.id}>
@@ -154,7 +164,21 @@ export default function AppLayout() {
                 </button>
 
                 {isActive && (
-                  <div className="ml-4 mt-1 pl-3 border-l border-white/10 pb-1">
+                  <div className="ml-4 mt-1 pl-3 border-l border-white/10 pb-1 space-y-0.5">
+                    {flagCentric && (
+                      <button type="button"
+                        onClick={() => navigate(`/orgs/${currentOrg!.id}/projects/${p.id}/flags`)}
+                        className={cn(
+                          'w-full flex items-center gap-2.5 text-left px-2.5 py-1.5 rounded-md text-xs transition-all',
+                          location.pathname.startsWith(`/orgs/${currentOrg?.id}/projects/${p.id}/flags`)
+                            ? 'bg-white/10 text-white font-semibold'
+                            : 'text-white/40 hover:bg-white/5 hover:text-white/70'
+                        )}
+                      >
+                        <Flag className="w-3 h-3 shrink-0" />
+                        <span className="truncate flex-1">Flags</span>
+                      </button>
+                    )}
                     <button type="button"
                       onClick={() => navigate(`/orgs/${currentOrg!.id}/projects/${p.id}/members`)}
                       className={cn(
@@ -173,7 +197,7 @@ export default function AppLayout() {
                 {showEnvs && (
                   <div className="ml-4 mt-1 pl-3 border-l border-white/10 space-y-0.5 pb-1">
                     {envs.map((e) => {
-                      const active = currentEnv?.id === e.id
+                      const active = urlEnv?.id === e.id
                       return (
                         <button type="button"
                           key={e.id}
@@ -264,10 +288,19 @@ export default function AppLayout() {
               </button>
             </>
           )}
-          {currentEnv && onFlagsPage && (
+          {onFlagsPage && flagCentric && currentProject && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
-              <span className="text-sm font-semibold text-gray-800">{currentEnv.name}</span>
+              <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-brand-soft border border-brand-border px-2.5 py-0.5 rounded-full">
+                <Flag className="w-3 h-3" />
+                Flags
+              </span>
+            </>
+          )}
+          {urlEnv && onFlagsPage && (
+            <>
+              <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+              <span className="text-sm font-semibold text-gray-800">{urlEnv.name}</span>
               <span className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-brand-soft border border-brand-border px-2.5 py-0.5 rounded-full">
                 <Flag className="w-3 h-3" />
                 Flags

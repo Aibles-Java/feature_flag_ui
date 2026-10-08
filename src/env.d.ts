@@ -6,5 +6,7 @@
 interface Window {
   __ENV__?: {
     VITE_API_URL?: string
+    /** Kill-switch for flag-centric navigation; only the string "true" enables it (S-1.11). */
+    FLAG_CENTRIC_NAV?: string
   }
 }

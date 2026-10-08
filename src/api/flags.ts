@@ -1,5 +1,5 @@
 import api from './axios'
-import { pageItems, type Page } from './page'
+import { pageItems, toPage, type Page } from './page'
 
 export type FlagValueType = 'BOOLEAN' | 'STRING' | 'INTEGER' | 'JSON'
 
@@ -23,8 +23,16 @@ export interface FlagState {
   lastEvaluatedAt?: string | null
 }
 
-export const getFlags = (projectId: string) =>
-  api.get<Page<FeatureFlag>>('/flags', { params: { projectId } }).then((r) => pageItems(r.data))
+/** Server clamps `size` to 100 (F12); D-18: page-based paging, never "load more". */
+export const MAX_FLAGS_PAGE_SIZE = 100
+
+/** One page of flags. `page` is 0-based (Spring). Size is clamped to {@link MAX_FLAGS_PAGE_SIZE}. */
+export const getFlags = (projectId: string, page = 0, size = MAX_FLAGS_PAGE_SIZE) =>
+  api
+    .get<Page<FeatureFlag>>('/flags', {
+      params: { projectId, page, size: Math.min(size, MAX_FLAGS_PAGE_SIZE) },
+    })
+    .then((r) => toPage(r.data))
 
 export const getFlag = (id: string) => api.get<FeatureFlag>(`/flags/${id}`).then((r) => r.data)
 
