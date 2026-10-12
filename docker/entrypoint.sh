@@ -5,8 +5,9 @@
 set -eu
 
 : "${VITE_API_URL:=http://localhost:8080/api/v1}"
-# Kill-switch for the flag-centric navigation (S-1.11). Anything but "true" = old behaviour.
-: "${FLAG_CENTRIC_NAV:=false}"
+# Kill-switch for the flag-centric navigation (S-1.11). ON by default; set FLAG_CENTRIC_NAV=false
+# (or anything but "true") to fall back to the old behaviour.
+: "${FLAG_CENTRIC_NAV:=true}"
 
 envsubst '${VITE_API_URL} ${FLAG_CENTRIC_NAV}' \
   < /usr/share/nginx/env.template.js \
