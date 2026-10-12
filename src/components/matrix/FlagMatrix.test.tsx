@@ -154,8 +154,8 @@ describe('FlagMatrix (S-1.4a)', () => {
     mock.onGet(/\/flags\/.+\/environments\/.+/).reply(404)
     const { user } = mount(flags)
     await screen.findAllByText('Not configured')
-    const cells = screen.getAllByRole('gridcell')
-    const tabbable = [...screen.getAllByRole('gridcell'), ...screen.getAllByRole('rowheader'), ...screen.getAllByRole('columnheader')].filter(
+    const cells = screen.getAllByRole('cell')
+    const tabbable = [...screen.getAllByRole('cell'), ...screen.getAllByRole('rowheader'), ...screen.getAllByRole('columnheader')].filter(
       (c) => c.getAttribute('tabindex') === '0',
     )
     expect(tabbable).toHaveLength(1)
