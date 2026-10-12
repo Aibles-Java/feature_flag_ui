@@ -24,7 +24,7 @@ function actionChipClass(locked: boolean, checked: boolean, isProduction: boolea
   if (!checked) return 'border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer'
   return isProduction
     ? 'border-amber-300 bg-amber-50 text-amber-900 font-medium cursor-pointer'
-    : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8] font-medium cursor-pointer'
+    : 'border-brand-border bg-brand-soft text-brand-strong font-medium cursor-pointer'
 }
 
 /**
@@ -90,7 +90,7 @@ function ActionPicker({
                   >
                     <input
                       type="checkbox"
-                      className="accent-[#2563EB] w-3.5 h-3.5"
+                      className="accent-primary w-3.5 h-3.5"
                       checked={checked}
                       disabled={locked}
                       onChange={() => onToggle(action)}
@@ -238,8 +238,8 @@ export default function CustomRolesPage() {
               className="group bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
             >
               <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] flex items-center justify-center shrink-0">
-                  <KeyRound className="w-5 h-5 text-[#2563EB]" />
+                <div className="w-11 h-11 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
+                  <KeyRound className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-base font-bold text-slate-900 truncate">{role.name}</p>
@@ -250,7 +250,7 @@ export default function CustomRolesPage() {
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <button type="button"
                     onClick={() => openEdit(role)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] transition-colors"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-brand-soft transition-colors"
                     title="Edit role"
                   >
                     <Pencil className="w-4 h-4" />

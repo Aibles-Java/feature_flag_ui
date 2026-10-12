@@ -21,7 +21,7 @@ const ROLE_STYLE: Record<MemberRole, { badge: string; icon: typeof Crown; blurb:
     blurb: 'Everything, including the production-only actions.',
   },
   ADMIN: {
-    badge: 'bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]',
+    badge: 'bg-brand-soft text-brand-strong border-brand-border',
     icon: Shield,
     blurb: 'Manage projects, flags and members, but not production-elevated actions.',
   },
@@ -196,7 +196,7 @@ export default function OrgMembersPage() {
                     <tr key={m.userId} className="group hover:bg-slate-50/60 transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-xs font-bold text-white shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white shrink-0">
                             {displayName(m).charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -259,7 +259,7 @@ export default function OrgMembersPage() {
                 <button
                   type="button"
                   onClick={addRow}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8]"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-brand-strong"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add project
@@ -371,7 +371,7 @@ export default function OrgMembersPage() {
             <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 px-3 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors">
               <input
                 type="checkbox"
-                className="accent-[#2563EB] w-4 h-4 mt-0.5"
+                className="accent-primary w-4 h-4 mt-0.5"
                 checked={isOrgAdmin}
                 onChange={(e) => setIsOrgAdmin(e.target.checked)}
               />
