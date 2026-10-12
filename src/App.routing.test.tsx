@@ -65,9 +65,11 @@ describe('S-1.1 routes with the kill-switch ON', () => {
   it('AC3: legacy envs/:e/flags redirects (replace) to /flags?env=:e and adds no history entry', async () => {
     mount(['/orgs', `${base}/envs/${ENV_DEV}/flags`])
     await waitFor(() => expect(loc()).toBe(`${base}/flags?env=${ENV_DEV}`))
-    // Going back must skip the legacy URL and land on the previous entry.
+    // Going back must skip the legacy URL and land on the previous entry. /orgs may itself redirect
+    // to the single org once its list loads (slow on CI), so only the prefix is stable.
     navigateRef(-1)
-    await waitFor(() => expect(loc()).toBe('/orgs'))
+    await waitFor(() => expect(loc()).toMatch(/^\/orgs(\/|$)/))
+    expect(loc()).not.toContain('/envs/')
   })
 
   it('AC4: the Environments page (/projects/:p) is unchanged', async () => {
