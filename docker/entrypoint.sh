@@ -9,6 +9,9 @@ set -eu
 # (or anything but "true") to fall back to the old behaviour.
 : "${FLAG_CENTRIC_NAV:=true}"
 
+# envsubst only sees exported variables; `:=` above sets plain shell variables.
+export VITE_API_URL FLAG_CENTRIC_NAV
+
 envsubst '${VITE_API_URL} ${FLAG_CENTRIC_NAV}' \
   < /usr/share/nginx/env.template.js \
   > /usr/share/nginx/html/env.js
