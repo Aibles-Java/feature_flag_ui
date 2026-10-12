@@ -51,7 +51,7 @@ function ActiveCell(props: Readonly<Props>) {
   if (isError) {
     return (
       <span className="inline-flex items-center gap-2 text-xs text-destructive">
-        Failed to load
+        <span>Failed to load</span>
         <button type="button" className="underline" onClick={() => refetch()} aria-label={`Retry ${flag.name} in ${env.name}`}>
           Retry
         </button>

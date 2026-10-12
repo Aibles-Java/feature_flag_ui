@@ -60,7 +60,8 @@ export default function FlagMatrix({ flags, environments, focusEnvId, renderRowH
       PageDown: [row + 10, col],
       PageUp: [row - 10, col],
     }
-    const to = e.ctrlKey && e.key === 'Home' ? [0, 0] : e.ctrlKey && e.key === 'End' ? [flags.length, nCols - 1] : moves[e.key]
+    const ctrlMoves: Partial<Record<string, [number, number]>> = { Home: [0, 0], End: [flags.length, nCols - 1] }
+    const to = (e.ctrlKey ? ctrlMoves[e.key] : undefined) ?? moves[e.key]
     if (!to) return
     e.preventDefault()
     focusCell(to[0], to[1])
@@ -78,6 +79,7 @@ export default function FlagMatrix({ flags, environments, focusEnvId, renderRowH
     <div
       ref={gridRef}
       role="grid"
+      tabIndex={-1}
       aria-label="Feature flags by environment"
       aria-rowcount={flags.length + 1}
       aria-colcount={nCols}

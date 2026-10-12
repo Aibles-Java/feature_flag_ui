@@ -48,7 +48,7 @@ export default function FlagDetailPage() {
     },
   })
 
-  if (flag.isPending) return <p role="status" className="text-sm text-muted-foreground">Loading flag...</p>
+  if (flag.isPending) return <output className="block text-sm text-muted-foreground">Loading flag...</output>
 
   if (flag.isError) {
     const notFound = isAxiosError(flag.error) && flag.error.response?.status === 404

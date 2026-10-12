@@ -1,11 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SyntheticEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { TriangleAlert } from 'lucide-react'
-import { getFlagState, type FeatureFlag } from '@/api/flags'
+import { getFlagState, type FeatureFlag, type FlagState } from '@/api/flags'
 import { saveFlagState, type EnvironmentWindow } from '@/api/flagEnvironments'
 import { invalidateStateQueries } from '@/api/flagMatrix'
 import { isStateConflict, withConflictReload } from '@/api/stateConflict'
-import type { FlagState } from '@/api/flags'
 import ApiError from '@/components/ApiError'
 import ProdGuardDialog from '@/components/flags/ProdGuardDialog'
 import StateConflictDialog from '@/components/flags/StateConflictDialog'
@@ -60,7 +59,7 @@ export default function FlagStateEditor({ flag, env, open, onClose }: Readonly<P
             <code className="font-mono">{flag.key}</code> in {env.name}
           </DialogDescription>
         </DialogHeader>
-        {fresh.isPending && <p role="status" className="text-sm text-muted-foreground">Loading current state...</p>}
+        {fresh.isPending && <output className="block text-sm text-muted-foreground">Loading current state...</output>}
         {fresh.isError && <ApiError error={fresh.error} />}
         {fresh.data && (
           <EditorForm flag={flag} env={env} loaded={fresh.data} onClose={onClose} />
@@ -116,7 +115,7 @@ function EditorForm({ flag, env, loaded, onClose }: Readonly<{ flag: FeatureFlag
   const conflict = isStateConflict(save.error) ? save.error : null
   const apiError = conflict ? null : save.error
 
-  const submit = (e: FormEvent) => {
+  const submit = (e: SyntheticEvent) => {
     e.preventDefault()
     if (invalid || save.isPending) return
     if (isProd) setGuardOpen(true)
@@ -125,6 +124,34 @@ function EditorForm({ flag, env, loaded, onClose }: Readonly<{ flag: FeatureFlag
 
   const valueId = `value-${env.id}`
   const rolloutId = `rollout-${env.id}`
+
+  let submitLabel = 'Save'
+  if (isProd) submitLabel = 'Review and save...'
+  else if (save.isPending) submitLabel = 'Saving...'
+
+  const valueProps = {
+    id: valueId,
+    value: valueText,
+    'aria-invalid': valueError !== null,
+    'aria-describedby': `${valueId}-hint`,
+  }
+  const onValueChange = (e: { target: { value: string } }) => setValueText(e.target.value)
+  let valueControl
+  if (flag.valueType === 'BOOLEAN') {
+    valueControl = (
+      <select className={FIELD} {...valueProps} onChange={onValueChange}>
+        <option value="">(no value)</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+    )
+  } else if (flag.valueType === 'INTEGER') {
+    valueControl = <Input inputMode="numeric" autoComplete="off" {...valueProps} onChange={onValueChange} />
+  } else {
+    valueControl = (
+      <textarea rows={flag.valueType === 'JSON' ? 6 : 3} className={`${FIELD} font-mono`} {...valueProps} onChange={onValueChange} />
+    )
+  }
 
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
@@ -142,20 +169,7 @@ function EditorForm({ flag, env, loaded, onClose }: Readonly<{ flag: FeatureFlag
 
       <div className="space-y-1.5">
         <Label htmlFor={valueId}>Value ({flag.valueType})</Label>
-        {flag.valueType === 'BOOLEAN' ? (
-          <select id={valueId} className={FIELD} value={valueText} aria-invalid={valueError !== null}
-            aria-describedby={`${valueId}-hint`} onChange={(e) => setValueText(e.target.value)}>
-            <option value="">(no value)</option>
-            <option value="true">true</option>
-            <option value="false">false</option>
-          </select>
-        ) : flag.valueType === 'INTEGER' ? (
-          <Input id={valueId} inputMode="numeric" autoComplete="off" value={valueText} aria-invalid={valueError !== null}
-            aria-describedby={`${valueId}-hint`} onChange={(e) => setValueText(e.target.value)} />
-        ) : (
-          <textarea id={valueId} rows={flag.valueType === 'JSON' ? 6 : 3} className={`${FIELD} font-mono`} value={valueText}
-            aria-invalid={valueError !== null} aria-describedby={`${valueId}-hint`} onChange={(e) => setValueText(e.target.value)} />
-        )}
+        {valueControl}
         <p id={`${valueId}-hint`} className="text-xs text-muted-foreground">{SECRET_ADVISORY}</p>
         {valueError && <p role="alert" className="text-xs text-destructive">{valueError}</p>}
       </div>
@@ -172,7 +186,7 @@ function EditorForm({ flag, env, loaded, onClose }: Readonly<{ flag: FeatureFlag
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
         <Button type="submit" disabled={invalid || save.isPending}>
-          {isProd ? 'Review and save...' : save.isPending ? 'Saving...' : 'Save'}
+          {submitLabel}
         </Button>
       </DialogFooter>
 

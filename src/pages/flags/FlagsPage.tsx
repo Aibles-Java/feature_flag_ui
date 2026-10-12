@@ -102,13 +102,13 @@ function FlagToggle({ flag, envId }: Readonly<{ flag: FeatureFlag; envId: string
 function MatrixStatus({ matrix }: Readonly<{ matrix: ReturnType<typeof useFlagMatrix> }>) {
   if (matrix.rateLimited) {
     return (
-      <p role="status" className="mx-5 my-3 rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-text">
+      <output className="mx-5 my-3 block rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-text">
         Too many requests. {matrix.index ? 'Showing the last loaded data. ' : ''}Retrying automatically in {matrix.retryAfter} seconds.
-      </p>
+      </output>
     )
   }
   if (matrix.mode === 'loading') {
-    return <p role="status" className="px-5 py-6 text-sm text-muted-foreground">Loading flag states...</p>
+    return <output className="block px-5 py-6 text-sm text-muted-foreground">Loading flag states...</output>
   }
   if (matrix.mode === 'error') return <div className="px-5 py-3"><ApiError error={matrix.error} /></div>
   return null

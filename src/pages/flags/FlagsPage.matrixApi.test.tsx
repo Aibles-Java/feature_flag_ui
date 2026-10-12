@@ -192,7 +192,7 @@ describe('S-2.16 quick toggle sends the version and handles 409', () => {
     // reverted: the switch shows the server value (off), and the row was re-read
     expect(screen.getByRole('switch', { name: /Toggle Synthetic flag 1/, hidden: true })).not.toBeChecked()
     await waitFor(() => expect(matrixCalls()).toHaveLength(2))
-    await waitFor(() => expect(screen.getByRole('img', { name: /Synthetic flag 1 in Synthetic Dev: disabled, value theirs, rollout 77%/, hidden: true })).toBeInTheDocument())
+    expect(await screen.findByRole('img', { name: /Synthetic flag 1 in Synthetic Dev: disabled, value theirs, rollout 77%/, hidden: true })).toBeInTheDocument()
     expect(mock.history.put).toHaveLength(1)
     await user.click(within(dlg).getByRole('button', { name: 'Got it' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

@@ -69,7 +69,7 @@ function GuardBody({ open, flagKey, env, before, after, saving, error, onConfirm
   const current = fresh.data
   const windowKnown = current?.changeWindowOpenNow !== undefined && current?.changeWindowOpenNow !== null
   const closed = current?.changeWindowOpenNow === false
-  const hasWindow = current != null && current.changeWindowStartHour != null && current.changeWindowEndHour != null
+  const hasWindow = current?.changeWindowStartHour != null && current.changeWindowEndHour != null
   const zone = current?.changeWindowZone ?? current?.changeWindowTimezone
   const keyMatches = typed === flagKey
 

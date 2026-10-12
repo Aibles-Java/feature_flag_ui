@@ -13,7 +13,7 @@ export function useInView(ref: RefObject<Element | null>): boolean {
     if (!supported || !ref.current) return
     const io = new IntersectionObserver(
       (entries) => {
-        const last = entries[entries.length - 1]
+        const last = entries.at(-1)
         if (last) setInView(last.isIntersecting)
       },
       { rootMargin: '200px' },
