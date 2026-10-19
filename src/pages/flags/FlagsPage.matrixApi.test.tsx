@@ -148,6 +148,7 @@ describe('S-2.15 / D-12 rate limit (429) on the matrix', () => {
     mock.onPut(`/flags/${f1.id}/environments/${ENV_DEV}`).reply(200, stateOf(f1, ENV_DEV, { enabled: true, version: 6 }))
     const { user } = mount(`?env=${ENV_DEV}`)
     await user.click(await screen.findByRole('switch', { name: /Toggle Synthetic flag 1/ }))
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     expect(await screen.findByText(/Showing the last loaded data\. Retrying automatically in 30 seconds/)).toBeInTheDocument()
     expect(screen.getByRole('grid')).toBeInTheDocument()
   })
@@ -155,6 +156,26 @@ describe('S-2.15 / D-12 rate limit (429) on the matrix', () => {
 
 describe('S-2.16 quick toggle sends the version and handles 409', () => {
   const dev = `/flags/${f1.id}/environments/${ENV_DEV}`
+
+  it('matrix quick toggle asks for confirmation first: Cancel writes nothing and keeps the switch', async () => {
+    mock.onGet(MATRIX).reply(200, pageOf(rows()))
+    mock.onPut(dev).reply(200, stateOf(f1, ENV_DEV, { enabled: true, version: 6 }))
+    const { user } = mount(`?env=${ENV_DEV}`)
+    await user.click(await screen.findByRole('switch', { name: 'Toggle Synthetic flag 1 in Synthetic Dev' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Enable flag?' })
+    expect(dlg).toHaveTextContent('Turn on Synthetic flag 1 in Synthetic Dev?')
+    await user.click(within(dlg).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mock.history.put).toHaveLength(0)
+    expect(screen.getByRole('switch', { name: /Toggle Synthetic flag 1/ })).not.toBeChecked()
+  })
+
+  it('confirmation dialog has no axe violations', async () => {
+    mock.onGet(MATRIX).reply(200, pageOf(rows()))
+    const { user } = mount(`?env=${ENV_DEV}`)
+    await user.click(await screen.findByRole('switch', { name: 'Toggle Synthetic flag 1 in Synthetic Dev' }))
+    expect(await axe(await screen.findByRole('dialog', { name: 'Enable flag?' }))).toHaveNoViolations()
+  })
 
   it('PUT carries the version of the displayed state, with no extra GET, then the row refreshes from ONE matrix call', async () => {
     let toggled = false
@@ -166,6 +187,7 @@ describe('S-2.16 quick toggle sends the version and handles 409', () => {
     const { user } = mount(`?env=${ENV_DEV}`)
     const sw = await screen.findByRole('switch', { name: 'Toggle Synthetic flag 1 in Synthetic Dev' })
     await user.click(sw)
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     await waitFor(() => expect(mock.history.put).toHaveLength(1))
     expect(JSON.parse(mock.history.put[0].data)).toEqual({ enabled: true, value: 'x', rolloutPercent: 40, version: 5 })
     expect(cellCalls()).toHaveLength(0)
@@ -184,6 +206,7 @@ describe('S-2.16 quick toggle sends the version and handles 409', () => {
     })
     const { user } = mount(`?env=${ENV_DEV}`)
     await user.click(await screen.findByRole('switch', { name: /Toggle Synthetic flag 1/ }))
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     const dlg = await screen.findByRole('dialog', { name: /Someone else changed this/ })
     const table = within(dlg).getByRole('table', { name: 'Latest state on the server' })
     expect(within(table).getByText('theirs')).toBeInTheDocument()
@@ -203,6 +226,7 @@ describe('S-2.16 quick toggle sends the version and handles 409', () => {
     mock.onPut(dev).reply(403, { title: 'Forbidden', detail: 'No permission' })
     const { user } = mount(`?env=${ENV_DEV}`)
     await user.click(await screen.findByRole('switch', { name: /Toggle Synthetic flag 1/ }))
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     expect(await screen.findByText('No permission')).toBeInTheDocument()
     expect(screen.queryByText('Someone else changed this')).not.toBeInTheDocument()
   })
@@ -213,6 +237,7 @@ describe('S-2.16 quick toggle sends the version and handles 409', () => {
     mock.onPut(dev).reply(409)
     const { user } = mount(`?env=${ENV_DEV}`)
     await user.click(await screen.findByRole('switch', { name: /Toggle Synthetic flag 1/ }))
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     const dlg = await screen.findByRole('dialog', { name: /Someone else changed this/ })
     expect(await axe(dlg)).toHaveNoViolations()
   })
@@ -233,6 +258,7 @@ describe('S-2.16 fallback quick toggle (phase 1 data without version)', () => {
     mock.onPut(dev).reply(200, stateOf(f1, ENV_DEV, { enabled: true }))
     const { user } = mount(`?env=${ENV_DEV}`)
     await user.click(await screen.findByRole('switch', { name: /Toggle Synthetic flag 1/ }))
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     await waitFor(() => expect(mock.history.put).toHaveLength(1))
     expect(JSON.parse(mock.history.put[0].data)).toEqual({ enabled: true, value: 'x', rolloutPercent: 40 })
   })
@@ -255,6 +281,7 @@ describe('S-2.16 legacy single-env route toggle', () => {
     const btn = await screen.findByRole('button', { name: 'Disabled' })
     mock.resetHistory()
     await user.click(btn)
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     expect(await screen.findByRole('dialog', { name: /Someone else changed this/ })).toBeInTheDocument()
     // written from the displayed state: the PUT is the first request after the click (no GET first)
     expect(mock.history[0].method).toBe('put')

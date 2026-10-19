@@ -69,6 +69,7 @@ describe('FlagsPage matrix (S-1.4a/b) on the flag-centric route', () => {
     mock.onPut(`/flags/${f1.id}/environments/${ENV_DEV}`).reply(200, stateOf(f1, ENV_DEV, { enabled: true }))
     const { user } = mountNew(`?env=${ENV_DEV}`)
     await user.click(await screen.findByRole('switch'))
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     await waitFor(() => expect(mock.history.put).toHaveLength(1))
     expect(JSON.parse(mock.history.put[0].data)).toEqual({ enabled: true, value: 'x', rolloutPercent: 40 })
   })
@@ -87,9 +88,22 @@ describe('FlagsPage legacy route toggle (S-0.1)', () => {
     const btn = await screen.findAllByRole('button', { name: 'Disabled' })
     mock.resetHistory()
     await user.click(btn[0])
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     await waitFor(() => expect(mock.history.put).toHaveLength(1))
     expect(JSON.parse(mock.history.put[0].data)).toEqual({ enabled: true, value: 'x', rolloutPercent: 40 })
     expect(mock.history.map((r) => r.method).slice(0, 2)).toEqual(['get', 'put'])
+  })
+
+  it('the pill asks for confirmation first: Cancel writes nothing', async () => {
+    mock.onPut(/.*/).reply(200, stateOf(f1, ENV_DEV, { enabled: true }))
+    const { user } = mountLegacy()
+    const [pill] = await screen.findAllByRole('button', { name: 'Disabled' })
+    await user.click(pill)
+    const dlg =await screen.findByRole('dialog', { name: 'Enable flag?' })
+    expect(dlg).toHaveTextContent(`Turn on ${f1.name}`)
+    await user.click(within(dlg).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mock.history.put).toHaveLength(0)
   })
 
   it('AC3: a 403 keeps the old value and shows the error', async () => {
@@ -97,6 +111,7 @@ describe('FlagsPage legacy route toggle (S-0.1)', () => {
     const { user } = mountLegacy()
     const btn = await screen.findAllByRole('button', { name: 'Disabled' })
     await user.click(btn[0])
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Got it' }))
     expect((await screen.findAllByRole('button', { name: 'Disabled' }))[0]).toBeInTheDocument()

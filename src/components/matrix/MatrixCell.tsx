@@ -10,6 +10,7 @@ import type { FeatureFlag, FlagState } from '@/api/flags'
 import { STATE_STALE_TIME_MS } from '@/config/matrixConfig'
 import ErrorDialog from '@/components/ErrorDialog'
 import StateConflictDialog from '@/components/flags/StateConflictDialog'
+import ToggleConfirmDialog from '@/components/flags/ToggleConfirmDialog'
 import { cn } from '@/lib/utils'
 import { canQuickToggle, describeCell, shortValue } from './cellFormat'
 
@@ -126,6 +127,8 @@ function QuickToggle({ flag, env, state }: Readonly<{ flag: FeatureFlag; env: En
   const qc = useQueryClient()
   const inFlight = useRef(false)
   const [conflict, setConflict] = useState<StateConflictError | null>(null)
+  // The value a click asked for, held until the user confirms it; null = no dialog open.
+  const [ask, setAsk] = useState<boolean | null>(null)
   const enabled = state.enabled
   const toggle = useMutation({
     // Sends the version of the state shown in this cell; a stale one is a 409 (S-2.16, ADR-07).
@@ -152,9 +155,7 @@ function QuickToggle({ flag, env, state }: Readonly<{ flag: FeatureFlag; env: En
         aria-label={`Toggle ${flag.name} in ${env.name}`}
         disabled={toggle.isPending}
         onClick={() => {
-          if (inFlight.current) return
-          inFlight.current = true
-          toggle.mutate(!enabled)
+          if (!inFlight.current) setAsk(!enabled)
         }}
         className={cn(
           'inline-flex h-6 w-10 items-center rounded-full border border-border px-0.5 transition-colors disabled:opacity-60',
@@ -163,6 +164,19 @@ function QuickToggle({ flag, env, state }: Readonly<{ flag: FeatureFlag; env: En
       >
         <span className="h-4 w-4 rounded-full bg-background shadow" aria-hidden="true" />
       </button>
+      <ToggleConfirmDialog
+        open={ask !== null}
+        flagName={flag.name}
+        envName={env.name}
+        nextEnabled={ask ?? !enabled}
+        onCancel={() => setAsk(null)}
+        onConfirm={() => {
+          if (ask === null || inFlight.current) return
+          inFlight.current = true
+          setAsk(null)
+          toggle.mutate(ask)
+        }}
+      />
       <ErrorDialog error={isStateConflict(toggle.error) ? null : toggle.error} onClose={() => toggle.reset()} />
       <StateConflictDialog
         open={conflict !== null}
