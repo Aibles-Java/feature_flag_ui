@@ -24,7 +24,10 @@ FROM nginx:1.27-alpine AS runtime
 # fix (libcrypto3/libssl3 3.3.7-r2: CVE-2026-75804, CVE-2026-84782). Naming the
 # (and tiff 4.7.2-r0: CVE-2026-4775) fixed package forces a cache miss and fails the build loudly on regression.
 # Bump the floor when a newer base-package CVE needs the same treatment.
-RUN apk upgrade --no-cache && apk add --no-cache gettext "libcrypto3>=3.3.7-r2" "libssl3>=3.3.7-r2" "tiff>=4.7.2-r0"
+# curl/libcurl 8.14.1-r3 (CVE-2026-5773, -6276, -8286, -8927, -92392) and
+# libexpat 2.9.0-r0 (CVE-2026-77214, -93990) added for the same reason.
+RUN apk upgrade --no-cache && apk add --no-cache gettext "libcrypto3>=3.3.7-r2" "libssl3>=3.3.7-r2" "tiff>=4.7.2-r0" \
+    "curl>=8.14.1-r3" "libcurl>=8.14.1-r3" "libexpat>=2.9.0-r0"
 
 # Nginx site config (SPA fallback, gzip, health check, caching)
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf

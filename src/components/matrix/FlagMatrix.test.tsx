@@ -241,6 +241,7 @@ describe('FlagMatrix focus mode (S-1.4b)', () => {
     expect(sw).toHaveAttribute('aria-checked', 'false')
     const before = getCount
     await user.click(sw)
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     await waitFor(() => expect(mock.history.put).toHaveLength(1))
     expect(JSON.parse(mock.history.put[0].data)).toEqual({ enabled: true, value: 'x', rolloutPercent: 40 })
     expect(getCount).toBeGreaterThan(before) // reload happened before the write
@@ -256,6 +257,7 @@ describe('FlagMatrix focus mode (S-1.4b)', () => {
     const { user } = mount([f], E_DEV)
     const sw = await screen.findByRole('switch')
     await user.click(sw)
+    await user.click(await screen.findByRole('button', { name: /^(Enable|Disable)$/ }))
     await waitFor(() => expect(mock.history.put).toHaveLength(1))
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Got it' }))

@@ -11,6 +11,7 @@ import { cellQueryKey, fetchCellState, invalidateStateQueries } from '@/api/flag
 import { isStateConflict, withConflictReload } from '@/api/stateConflict'
 import { useFlagMatrix } from '@/hooks/useFlagMatrix'
 import StateConflictDialog from '@/components/flags/StateConflictDialog'
+import ToggleConfirmDialog from '@/components/flags/ToggleConfirmDialog'
 import FlagMatrix from '@/components/matrix/FlagMatrix'
 import { useEnvParam } from '@/hooks/useEnvParam'
 import { Button } from '@/components/ui/button'
@@ -40,9 +41,11 @@ const typeConfig: Record<FlagValueType, { label: string; cls: string; icon: Reac
 
 // ─── Pill Toggle ──────────────────────────────────────────────────────────────
 
-function FlagToggle({ flag, envId }: Readonly<{ flag: FeatureFlag; envId: string }>) {
+function FlagToggle({ flag, envId, envName }: Readonly<{ flag: FeatureFlag; envId: string; envName?: string }>) {
   const flagId = flag.id
   const qc = useQueryClient()
+  // The value a click asked for, held until the user confirms it; null = no dialog open.
+  const [ask, setAsk] = useState<boolean | null>(null)
   const { data: state, isLoading } = useQuery({
     queryKey: ['flag-state', flagId, envId],
     queryFn: () => getFlagState(flagId, envId),
@@ -70,7 +73,7 @@ function FlagToggle({ flag, envId }: Readonly<{ flag: FeatureFlag; envId: string
   return (
     <>
       <button type="button"
-        onClick={() => toggle.mutate(!enabled)}
+        onClick={() => setAsk(!enabled)}
         disabled={pending}
         className={cn(
           'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all select-none',
@@ -85,6 +88,18 @@ function FlagToggle({ flag, envId }: Readonly<{ flag: FeatureFlag; envId: string
           : <span className={cn('w-2 h-2 rounded-full', enabled ? 'bg-white' : 'bg-faint')} />}
         {enabled ? 'Enabled' : 'Disabled'}
       </button>
+      <ToggleConfirmDialog
+        open={ask !== null}
+        flagName={flag.name}
+        envName={envName}
+        nextEnabled={ask ?? !enabled}
+        onCancel={() => setAsk(null)}
+        onConfirm={() => {
+          if (ask === null || toggle.isPending) return
+          setAsk(null)
+          toggle.mutate(ask)
+        }}
+      />
       <ErrorDialog error={conflict ? null : toggle.error} onClose={() => toggle.reset()} />
       <StateConflictDialog open={conflict !== null} subject={flag.name} latest={conflict?.latest ?? null} onClose={() => toggle.reset()} />
     </>
@@ -515,7 +530,7 @@ export default function FlagsPage() {
                     {/* Toggle */}
                     {envId && (
                       <div className="flex justify-end">
-                        <FlagToggle flag={flag} envId={envId} />
+                        <FlagToggle flag={flag} envId={envId} envName={environments.find((e) => e.id === envId)?.name} />
                       </div>
                     )}
                   </div>
